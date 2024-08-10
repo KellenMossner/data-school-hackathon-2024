@@ -46,6 +46,9 @@ def load_data():
     # TODO: Use computer vision to infer test annotations from test images?? Thoughts guys?
     return training_df, test_labels
 
+def cnn():
+    pass
+
 
 def main():
     training_df, test_labels = load_data()
