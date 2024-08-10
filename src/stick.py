@@ -1,9 +1,12 @@
 import json, sys, csv
-from flask import logging
+from flask import Flask, logging
 from shapely.geometry import Polygon
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
+
+app = Flask(__name__)
+logger = logging.create_logger(app)
 
 def calculate_L1_size(json_data):
     data = json.loads(json_data)
@@ -65,7 +68,7 @@ def train_model():
     with open('data/train_labels.csv', 'r') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
-            labels.append((int(row['Pothole number']), float(row['Bags used'])))
+            labels.append((int(row['Pothole number']), float(row['Bags used '])))
     
     # Collect areas for each pothole
     areas = []
@@ -76,14 +79,14 @@ def train_model():
             area = calculate_pothole_area(json_data)
             areas.append([area])
         except FileNotFoundError:
-            print(f"Warning: JSON file for pothole {pothole_number} not found.")
+            logger.warning(f"JSON file for pothole {pothole_number} not found.")
     
     # Prepare data for model
     X = np.array(areas)
     y = np.array([bags for _, bags in labels])
 
-    logging.info(f"Training data shape: {X.shape}")
-    logging.info(f"Training labels shape: {y.shape}")
+    logger.info(f"Training data shape: {X.shape}")
+    logger.info(f"Training labels shape: {y.shape}")
     
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -96,15 +99,15 @@ def train_model():
     train_score = model.score(X_train, y_train)
     test_score = model.score(X_test, y_test)
     
-    print(f"Model R-squared score on training data: {train_score:.4f}")
-    print(f"Model R-squared score on test data: {test_score:.4f}")
+    logger.info(f"Model R-squared score on training data: {train_score:.4f}")
+    logger.info(f"Model R-squared score on test data: {test_score:.4f}")
     
     return model
 
 def main():
     # Check if a file path is provided as a command-line argument
     if len(sys.argv) < 2:
-        print("Please provide the path to the JSON file as a command-line argument.")
+        logger.error("Please provide the path to the JSON file as a command-line argument.")
         sys.exit(1)
     
     # Get the file path from the command-line argument
@@ -123,17 +126,18 @@ def main():
         # Train the model
         print("\nTraining the model...")
         model = train_model()
+        
         # Use the model to predict bags for the current pothole
         predicted_bags = model.predict([[area]])[0]
         
         print(f"\nPredicted number of bags: {predicted_bags:.2f}")
     
     except FileNotFoundError:
-        print(f"Error: The file '{file_path}' was not found.")
+        logger.error(f"The file '{file_path}' was not found.")
     except json.JSONDecodeError:
-        print(f"Error: The file '{file_path}' does not contain valid JSON data.")
+        logger.error(f"The file '{file_path}' does not contain valid JSON data.")
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
