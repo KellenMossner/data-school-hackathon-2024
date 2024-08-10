@@ -1,9 +1,9 @@
-import json
-import sys
+import json, sys, csv
 from flask import logging
 from shapely.geometry import Polygon
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 def calculate_L1_size(json_data):
     data = json.loads(json_data)
@@ -123,7 +123,6 @@ def main():
         # Train the model
         print("\nTraining the model...")
         model = train_model()
-        
         # Use the model to predict bags for the current pothole
         predicted_bags = model.predict([[area]])[0]
         
