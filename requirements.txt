@@ -44,6 +44,7 @@ nwg-panel==0.9.35
 olefile==0.46
 packaging==23.1
 Paste==3.5.3
+pandas==2.2.2
 pexpect==4.8.0
 pid==2.2.3
 pillow==10.3.0

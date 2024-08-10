@@ -1,12 +1,27 @@
-import json, sys, csv
-from flask import Flask, logging
+import json, sys
+import pandas as pd
+import numpy as np
+import logging  # Use the standard logging module
+from flask import Flask
 from shapely.geometry import Polygon
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 import numpy as np
 
 app = Flask(__name__)
-logger = logging.create_logger(app)
+
+# Configure the logger to write to a log file
+log_file_handler = logging.FileHandler('logs/model.log', mode='w')
+log_file_handler.setLevel(logging.DEBUG)
+
+# Set the log format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_file_handler.setFormatter(formatter)
+
+# Set up the logger
+logger = logging.getLogger(__name__)
+logger.addHandler(log_file_handler)
+logger.setLevel(logging.DEBUG)
 
 def calculate_L1_size(json_data):
     data = json.loads(json_data)
@@ -62,75 +77,72 @@ def calculate_pothole_area(json_data):
     # Calculate the area of the polygon
     return poly.area
 
-def train_model():
-    # Read training labels
-    labels = []
-    with open('data/train_labels.csv', 'r') as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            labels.append((int(row['Pothole number']), float(row['Bags used '])))
-    
-    # Collect areas for each pothole
-    areas = []
-    for pothole_number, _ in labels:
-        try:
-            with open(f'data/{pothole_number}.json', 'r') as file:
-                json_data = file.read()
-            area = calculate_pothole_area(json_data)
-            areas.append([area])
-        except FileNotFoundError:
-            logger.warning(f"JSON file for pothole {pothole_number} not found.")
-    
-    # Prepare data for model
-    X = np.array(areas)
-    y = np.array([bags for _, bags in labels])
-
-    logger.info(f"Training data shape: {X.shape}")
-    logger.info(f"Training labels shape: {y.shape}")
-    
-    # Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+def train_linear_model(X_train, X_test, y_train, y_test):
     # Train the model
     model = LinearRegression()
     model.fit(X_train, y_train)
-    
+    logger.info("Model trained successfully.")
+
     # Evaluate the model
     train_score = model.score(X_train, y_train)
     test_score = model.score(X_test, y_test)
-    
     logger.info(f"Model R-squared score on training data: {train_score:.4f}")
     logger.info(f"Model R-squared score on test data: {test_score:.4f}")
-    
+
     return model
 
+def extract_data(number_of_obs=10):
+    # Read training labels using pandas
+    df = pd.read_csv('data/train_labels.csv')
+    df = df.head(10)  # Limit to the first 10 labels
+
+    # Collect areas for each pothole
+    areas = []
+    for pothole_number in df['Pothole number']:
+        try:
+            with open(f'data/train_json/input{pothole_number}.json', 'r') as file:
+                json_data = file.read()
+            area = calculate_pothole_area(json_data)
+            areas.append(area)
+        except FileNotFoundError:
+            logger.warning(f"JSON file for pothole {pothole_number} not found.")
+            areas.append(np.nan)  # Append NaN for missing data
+        except Exception as e:
+            logger.error(f"Error calculating area for pothole {pothole_number}: {str(e)}")
+            areas.append(np.nan)  # Append NaN for error cases
+
+    # Add areas to the dataframe
+    df['Area'] = areas
+
+    # Remove rows with NaN values
+    df = df.dropna()
+
+    # Prepare data for model
+    X = df[['Area']]
+    y = df['Bags used ']
+
+    logger.info(f"Training data shape: {X.shape}")
+    logger.info(f"Training labels shape: {y.shape}")
+
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Print the training and test data
+    logger.debug(f"X_train:\n{X_train}")
+    logger.debug(f"y_train:\n{y_train}")
+    logger.debug(f"X_test:\n{X_test}")
+    logger.debug(f"y_test:\n{y_test}")
+
+    return X_train, X_test, y_train, y_test
+
 def main():
-    # Check if a file path is provided as a command-line argument
-    if len(sys.argv) < 2:
-        logger.error("Please provide the path to the JSON file as a command-line argument.")
-        sys.exit(1)
-    
-    # Get the file path from the command-line argument
-    file_path = sys.argv[1]
-    
-    try:
-        # Read the JSON data from the file
-        with open(file_path, 'r') as file:
-            json_data = file.read()
-        
-        # Calculate the pothole area
-        area = calculate_pothole_area(json_data)
-        
-        print(f"Pothole Area: {area:.2f}")
-        
+    try:        
         # Train the model
         print("\nTraining the model...")
-        model = train_model()
-        
-        # Use the model to predict bags for the current pothole
-        predicted_bags = model.predict([[area]])[0]
-        
-        print(f"\nPredicted number of bags: {predicted_bags:.2f}")
+        X_train, X_test, y_train, y_test = extract_data()
+
+        lin_model = train_linear_model()
+        print("\nModel trained successfully.")
     
     except FileNotFoundError:
         logger.error(f"The file '{file_path}' was not found.")
