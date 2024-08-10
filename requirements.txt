@@ -36,6 +36,7 @@ pytz==2024.1
 requests==2.32.3
 rich==13.7.1
 setuptools==72.1.0
+shapely==2.0.5
 six==1.16.0
 tensorboard==2.17.0
 tensorboard-data-server==0.7.2
