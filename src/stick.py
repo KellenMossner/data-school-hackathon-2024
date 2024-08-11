@@ -28,40 +28,36 @@ def extract_data(json_dir, csv_file):
     logging.info(f"Using CSV file: {csv_file}")
 
     df = pd.read_csv(csv_file)
+    valid_rows = []  # Store rows that have valid JSON files
     areas = []  
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
         
         image_file_path = os.path.join(json_dir, f'cv_train_p{int(image_name)}.json')
-        logging.info(f"Processing image: {image_file_path}")
+        logging.debug(f"Processing image: {image_file_path}")
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.warning(f"JSON file not found for image: {image_name}")
-            areas.append(None)
-            continue
-
-        json_file = os.path.join(json_dir, image_file_path )
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
+            continue  # Skip to the next iteration if the JSON file is not found
         
         try:
-            with open(json_file, 'r') as file:
+            with open(image_file_path, 'r') as file:
                 json_data = json.load(file)
             area = calculate_pothole_area(json_data)
             areas.append(area)
-        except FileNotFoundError:
-            logging.warning(f"JSON file not found for image: {image_name}")
-            areas.append(None)
+            valid_rows.append(row)  # Keep the row only if it has a valid JSON file
         except json.JSONDecodeError:
-            logging.error(f"Invalid JSON in file: {json_file}")
-            areas.append(None)
+            logging.error(f"Invalid JSON in file: {image_file_path}")
         except Exception as e:
-            logging.error(f"Error processing {json_file}: {str(e)}")
-            areas.append(None)
+            logging.error(f"Error processing {image_file_path}: {str(e)}")
 
-    df['Area'] = areas
-    df = df.dropna()
-    return df
+    # Create a new DataFrame with only valid rows
+    valid_df = pd.DataFrame(valid_rows)
+    valid_df['Area'] = areas
+
+    return valid_df
 
 def train_linear_model(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
