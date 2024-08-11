@@ -21,7 +21,7 @@ def calculate_pothole_area(json_data):
             points = list(zip(item['segments']['x'], item['segments']['y']))
             poly = Polygon(points)
             if ratio is not None:
-                return poly.area * ratio
+                return poly.area
             else:
                 return None
     return None
@@ -88,6 +88,9 @@ def extract_data(json_dir, csv_file):
             areas.append(area)
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
+
+            # Log the area
+            logging.debug(f"Area of pothole in image {image_name}: {area:.2f}")
         except json.JSONDecodeError:
             logging.error(f"Invalid JSON in file: {image_file_path}")
         except Exception as e:
