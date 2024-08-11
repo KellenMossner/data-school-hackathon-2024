@@ -14,25 +14,10 @@ Original file is located at
 from ultralytics import YOLO
 from roboflow import Roboflow
 
-
-rf = Roboflow(api_key="yDoSaI46yfcAbGfIASDE")
-project = rf.workspace("data-school-hackathon").project("patch-perfect-fq7m5")
-version = project.version(4)
-dataset = version.download("yolov8")
-
-"""Training the computer vision model"""
-
-model = YOLO("yolov8m-seg.pt")  # load a pretrained model (recommended for training)
-# Train the model
-results = model.train(data="/content/Patch-Perfect-4/data.yaml", epochs=100, imgsz=640)
-
 import cv2
-model_path = "/content/runs/segment/train3/weights/last.pt"
-image_path = "/content/Patch-Perfect-2/test/images/p102_jpg.rf.856c53fc3ae4a243aa80190a14e819f7.jpg"
-img = cv2.imread(image_path)
+model_path = "data/model_weights.pt"
 model = YOLO(model_path)
+
+image_path = "/content/Patch-Perfect-4/test/images/p102_jpg.rf.08f90d0ca7e89383864006844619b327.jpg"
+img = cv2.imread(image_path)
 results = model(img)
-
-results[0].save_txt("test_result.txt")
-
-print(results)
