@@ -73,6 +73,12 @@ def train_linear_model(X, y):
     
     return model, X_test, y_test
 
+def train_jonty_model(X, y):
+    pass
+
+def train_kellen_model(X, y):
+    pass
+
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
@@ -82,6 +88,8 @@ def main():
         df = extract_data(json_dir, csv_file)
         print("Data extracted successfully.")
         logging.info(f"Processed data shape: {df.shape}")
+        logging.debug(f"Processed data columns: {df.columns}")
+        logging.debug(f"Dataframe: {df.head()}")
         
         X = df[['Area']]
         y = df['Bags used ']
