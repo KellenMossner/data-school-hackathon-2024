@@ -21,13 +21,28 @@ def calculate_pothole_area(json_data):
     return None
 
 def extract_data(json_dir, csv_file):
+    json_dir = os.path.abspath(json_dir)
+    csv_file = os.path.abspath(csv_file)
+    
+    logging.info(f"Using JSON directory: {json_dir}")
+    logging.info(f"Using CSV file: {csv_file}")
+
     df = pd.read_csv(csv_file)
-    areas = []
+    areas = []  
 
     for _, row in df.iterrows():
-        image_name = row['Image']
-        logging.info(f"Processing image: {image_name}")
-        json_file = os.path.join(json_dir, f'cv_train_{image_name}.json')
+        image_name = row['Pothole number']
+        
+        image_file_path = os.path.join(json_dir, f'cv_train_p{int(image_name)}.json')
+        logging.info(f"Processing image: {image_file_path}")
+
+        # Check if file exists
+        if not os.path.isfile(image_file_path):
+            logging.warning(f"JSON file not found for image: {image_name}")
+            areas.append(None)
+            continue
+
+        json_file = os.path.join(json_dir, image_file_path )
         
         try:
             with open(json_file, 'r') as file:
