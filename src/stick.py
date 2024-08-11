@@ -36,7 +36,7 @@ def calculate_length_L1(json_data):
         if item['name'] == 'L1':
             points = list(zip(item['segments']['x'], item['segments']['y']))
             max_distance = 0
-            max_points = None
+   
 
             for i in range(len(points)):
                 for j in range(i + 1, len(points)):
@@ -45,7 +45,7 @@ def calculate_length_L1(json_data):
                         max_distance = dist
             return max_distance
 
-        return None
+    return None
 
 
 def calculate_L1_ratio(json_data):
