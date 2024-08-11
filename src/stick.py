@@ -90,7 +90,9 @@ def main():
         logging.info(f"Processed data shape: {df.shape}")
         logging.debug(f"Processed data columns: {df.columns}")
         logging.debug(f"Dataframe: {df.head()}")
-        
+        # Drop NA
+        df = df.dropna()
+
         X = df[['Area']]
         y = df['Bags used ']
         
