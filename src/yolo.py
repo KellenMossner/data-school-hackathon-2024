@@ -56,7 +56,7 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
             
             # Simplify the polygon to reduce the number of points
             epsilon = 0.001 * cv2.arcLength(hull, True)
-            approx = cv2.approxPolyDP(hull, True)
+            approx = cv2.approxPolyDP(hull, epsilon, True)
             
             # Convert the simplified polygon to a list of points
             polygon = approx.squeeze()
