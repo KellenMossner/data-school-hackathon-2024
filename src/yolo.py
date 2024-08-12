@@ -17,7 +17,7 @@ def save_detections_as_json(detections, output_json_path):
         output_json_path (str): Path to the output JSON file.
     """
     with open(output_json_path, 'w') as json_file:
-        json.dump(detections, json_file, indent=4)
+        json.dump(detections, json_file, indent=2)
     print(f"Detections saved to {output_json_path}")
 
 
