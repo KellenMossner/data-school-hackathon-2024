@@ -19,7 +19,7 @@ def save_detections_as_json(detections, output_json_path):
     print(f"Detections saved to {output_json_path}")
 
 
-def visualize_and_save_detections(image_path, results, output_json_path):
+def visualize_and_save_detections(image_path, results, output_json_path, model):
     """
     Visualize the segmentation masks on the image and save the masks as polygons in a JSON file.
     Handles cases where a mask may result in multiple separate polygons.
@@ -35,8 +35,13 @@ def visualize_and_save_detections(image_path, results, output_json_path):
         return
 
     detections = []
+    names = model.names
 
     if results[0].masks is not None:
+        classes = []
+        results[0].save_txt(output_json_path.replace(".json", ".txt"))
+        for c in results[0].boxes.cls:
+            classes.append(int(c))
         for i, mask in enumerate(results[0].masks.data):
             mask = mask.cpu().numpy()  # Convert to numpy array
             mask = cv2.resize(mask, (img.shape[1], img.shape[0]))  # Resize to match image size
@@ -56,8 +61,8 @@ def visualize_and_save_detections(image_path, results, output_json_path):
                 y_points = contour[:, 1].tolist()
 
                 # Get the correct class name using the class id from results[0].boxes.cls
-                class_id = "TODO"
-                class_name = "TODO"
+                class_id = classes[i]
+                class_name = names[class_id]
 
                 # Prepare detection info
                 detection_info = {
@@ -88,11 +93,11 @@ def visualize_and_save_detections(image_path, results, output_json_path):
     save_detections_as_json(detections, output_json_path)
 
     # Optionally, display the image with the visualized polygons
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    plt.figure(figsize=(10, 10))
-    plt.imshow(img_rgb)
-    plt.axis('off')
-    plt.show()
+    # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # plt.figure(figsize=(10, 10))
+    # plt.imshow(img_rgb)
+    # plt.axis('off')
+    # plt.show()
 
 
 def main():
@@ -108,7 +113,7 @@ def main():
 
     # Test Results
     test_results = model("data/train_images/p101.jpg")
-    visualize_and_save_detections("data/train_images/p101.jpg", test_results, os.path.join(output_dir, "test_results.json"))
+    visualize_and_save_detections("data/train_images/p101.jpg", test_results, os.path.join(output_dir, "test_results.json"), model)
     
     # Uncomment if you want to process all images
     # predict_all_train_images(model)
