@@ -113,6 +113,7 @@ def main():
 
     # Test Results
     test_results = model("data/train_images/p101.jpg")
+    test_results = model.predict("data/train_images/p101.jpg", iou=0.5, conf=0.5, agnostic_nms=True)
     visualize_and_save_detections("data/train_images/p101.jpg", test_results, os.path.join(output_dir, "test_results.json"), model)
     
     # Uncomment if you want to process all images
