@@ -17,7 +17,7 @@ def save_detections_as_json(detections, output_json_path):
         output_json_path (str): Path to the output JSON file.
     """
     with open(output_json_path, 'w') as json_file:
-        json.dump(detections, json_file, indent=4)
+        json.dump(detections, json_file, indent=2)
     print(f"Detections saved to {output_json_path}")
 
 
@@ -43,7 +43,6 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
     if results[0].masks is not None:
         classes = []
-        results[0].save_txt(output_json_path.replace(".json", ".txt"))
         for c in results[0].boxes.cls:
             classes.append(int(c))
         for i, mask in enumerate(results[0].masks.data):
@@ -107,15 +106,8 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
     # Save the detections to a JSON file
     save_detections_as_json(detections, output_json_path)
-    output_image_path = output_json_path.replace(".json", "_contours.png")
-    cv2.imwrite(output_image_path, img)
-
-    # # Optionally, display the image with the visualized polygons
-    # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(img_rgb)
-    # plt.axis('off')
-    # plt.show()
+    # output_image_path = output_json_path.replace(".json", "_contours.png")
+    # cv2.imwrite(output_image_path, img)
 
 
 def main():
