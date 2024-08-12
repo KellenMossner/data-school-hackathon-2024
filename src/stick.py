@@ -21,7 +21,7 @@ def calculate_pothole_area(json_data):
             points = list(zip(item['segments']['x'], item['segments']['y']))
             poly = Polygon(points)
             if ratio is not None:
-                return poly.area
+                return math.sqrt(poly.area)/ratio
             else:
                 return None
     return None
@@ -76,8 +76,7 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {
-                          image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
