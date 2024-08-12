@@ -8,10 +8,10 @@ from shapely.geometry import Polygon
 import logging
 import math
 
+
 # Configure logging
 open('logs/model.log', 'w').close()
-logging.basicConfig(filename='logs/model.log', level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs/model.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def calculate_pothole_area(json_data):
@@ -19,9 +19,9 @@ def calculate_pothole_area(json_data):
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
-            poly = Polygon(points)
             if ratio is not None:
-                return poly.area
+                poly = Polygon(points)
+                return np.sqrt(poly.area) / ratio
             else:
                 return None
     return None
@@ -76,8 +76,7 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {
-                          image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
@@ -129,33 +128,52 @@ def train_kellen_model(X, y):
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
+    yolo_weights = 'data/kellen_model.pt'
 
     try:
         print("Extracting data...")
-        df = extract_data(json_dir, csv_file)
+        df_train = extract_data(json_dir, csv_file)
         print("Data extracted successfully.")
-        logging.info(f"Processed data shape: {df.shape}")
-        logging.debug(f"Processed data columns: {df.columns}")
-        logging.debug(f"Dataframe: {df.head()}")
+        logging.info(f"Processed data shape: {df_train.shape}")
+        logging.debug(f"Processed data columns: {df_train.columns}")
+        logging.debug(f"Dataframe: {df_train.head()}")
         # Drop NA
-        df = df.dropna()
+        df_train = df_train.dropna()
 
-        X = df[['Area']]
-        y = df['Bags used ']
+        X = df_train[['Area']]
+        y = df_train['Bags used ']
 
-        model, X_test, y_test = train_linear_model(X, y)
+        lm_model, X_test, y_test = train_linear_model(X, y)
 
         # Make predictions on test set
-        y_pred = model.predict(X_test)
+        y_pred = lm_model.predict(X_test)
 
         # Log some sample predictions
         for true, pred in zip(y_test[:5], y_pred[:5]):
             logging.info(f"True: {true}, Predicted: {pred:.2f}")
 
         logging.info("Model training completed successfully.")
-
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
+        
+    # Get r-squared of test data
+    try:
+        df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
+        num_null_entries = df_test.isnull().sum().sum()
+        logging.info(f"Number of null entries in test data: {num_null_entries}")
+        df_test['Area'] = df_test['Area'].fillna(0)
+        X_test = df_test[['Area']]
+        y_test = df_test['Bags used ']
+        y_pred = np.abs(lm_model.predict(X_test))
+        df_test['Bags used '] = y_pred
+        df_test['Pothole number'] = df_test['Pothole number'].astype(int)
+        df_test[['Pothole number', 'Bags used ']].to_csv('data/test_results.csv', index=False)
+        print(df_test)
+        logging.info("Results saved to data/test_results.csv")
+        
+    except Exception as e:
+        logging.error(f"An error occurred in main execution: {str(e)}")
+
 
 
 if __name__ == "__main__":
