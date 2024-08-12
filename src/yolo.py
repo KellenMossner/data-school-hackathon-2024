@@ -55,8 +55,8 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
             hull = cv2.convexHull(all_points)
             
             # Simplify the polygon to reduce the number of points
-            epsilon = 0.005 * cv2.arcLength(hull, True)
-            approx = cv2.approxPolyDP(hull, epsilon, True)
+            epsilon = 0.001 * cv2.arcLength(hull, True)
+            approx = cv2.approxPolyDP(hull, True)
             
             # Convert the simplified polygon to a list of points
             polygon = approx.squeeze()
@@ -101,18 +101,20 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
     # Save the detections to a JSON file
     save_detections_as_json(detections, output_json_path)
+    output_image_path = output_json_path.replace(".json", "_contours.png")
+    cv2.imwrite(output_image_path, img)
 
-    # Optionally, display the image with the visualized polygons
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    plt.figure(figsize=(10, 10))
-    plt.imshow(img_rgb)
-    plt.axis('off')
-    plt.show()
+    # # Optionally, display the image with the visualized polygons
+    # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # plt.figure(figsize=(10, 10))
+    # plt.imshow(img_rgb)
+    # plt.axis('off')
+    # plt.show()
 
 
 def main():
     # Set the paths
-    model_path = "data/model_weights.pt"
+    model_path = "data/kellen_model.pt"
     output_dir = "data/cv_train_out"
     
     # Create output directory if it doesn't exist
