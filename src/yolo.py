@@ -21,13 +21,14 @@ def save_detections_as_json(detections, output_json_path):
 
 def visualize_and_save_detections(image_path, results, output_json_path, model):
     """
-    Visualize the segmentation masks on the image and save the masks as polygons in a JSON file.
-    Handles cases where a mask may result in multiple separate polygons.
+    Visualize the segmentation masks on the image and save the masks as a single polygon in a JSON file.
+    Merges multiple contours into a single polygon for each pothole.
 
     Parameters:
         image_path (str): Path to the image file.
         results (YOLO result object): The result object returned by the YOLO model inference.
         output_json_path (str): Path to the output JSON file.
+        model (YOLO): The YOLO model object.
     """
     img = cv2.imread(image_path)
     if img is None:
@@ -46,58 +47,67 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
             mask = mask.cpu().numpy()  # Convert to numpy array
             mask = cv2.resize(mask, (img.shape[1], img.shape[0]))  # Resize to match image size
 
-            # Find all contours (polygons) from the mask
+            # Find all contours from the mask
             contours, _ = cv2.findContours((mask > 0.5).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            for contour in contours:
-                contour = contour.squeeze()
+            # Merge all contours into a single polygon
+            all_points = np.concatenate(contours)
+            hull = cv2.convexHull(all_points)
+            
+            # Simplify the polygon to reduce the number of points
+            epsilon = 0.005 * cv2.arcLength(hull, True)
+            approx = cv2.approxPolyDP(hull, epsilon, True)
+            
+            # Convert the simplified polygon to a list of points
+            polygon = approx.squeeze()
 
-                if contour.ndim == 1:
-                    # In case the contour is a single point
-                    contour = contour[np.newaxis, :]
+            if polygon.ndim == 1:
+                # In case the polygon is a single point
+                polygon = polygon[np.newaxis, :]
 
-                # Separate the x and y coordinates
-                x_points = contour[:, 0].tolist()
-                y_points = contour[:, 1].tolist()
+            # Separate the x and y coordinates
+            x_points = polygon[:, 0].tolist()
+            y_points = polygon[:, 1].tolist()
 
-                # Get the correct class name using the class id from results[0].boxes.cls
-                class_id = classes[i]
-                class_name = names[class_id]
+            # Get the correct class name using the class id from results[0].boxes.cls
+            class_id = classes[i]
+            class_name = names[class_id]
 
-                # Prepare detection info
-                detection_info = {
-                    "name": class_name,
-                    "class": class_id,
-                    "box": {
-                        "x1": float(min(x_points)),
-                        "y1": float(min(y_points)),
-                        "x2": float(max(x_points)),
-                        "y2": float(max(y_points))
-                    },
-                    "segments": {
-                        "x": x_points,
-                        "y": y_points
-                    }
+            # Prepare detection info
+            detection_info = {
+                "name": class_name,
+                "class": class_id,
+                "box": {
+                    "x1": float(min(x_points)),
+                    "y1": float(min(y_points)),
+                    "x2": float(max(x_points)),
+                    "y2": float(max(y_points))
+                },
+                "segments": {
+                    "x": x_points,
+                    "y": y_points
                 }
+            }
 
-                # Include confidence if available
-                if results[0].probs is not None:
-                    detection_info["confidence"] = float(results[0].probs[i])
+            # Include confidence if available
+            if results[0].probs is not None:
+                detection_info["confidence"] = float(results[0].probs[i])
 
-                detections.append(detection_info)
+            detections.append(detection_info)
 
-                # Visualize the polygon on the image
-                cv2.polylines(img, [contour], isClosed=True, color=(0, 255, 0), thickness=2)
+            # Visualize the polygon on the image only if pot hole
+            if class_name == "pothole":
+                cv2.polylines(img, [polygon], isClosed=True, color=(0, 255, 0), thickness=2)
 
     # Save the detections to a JSON file
     save_detections_as_json(detections, output_json_path)
 
     # Optionally, display the image with the visualized polygons
-    # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(img_rgb)
-    # plt.axis('off')
-    # plt.show()
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    plt.figure(figsize=(10, 10))
+    plt.imshow(img_rgb)
+    plt.axis('off')
+    plt.show()
 
 
 def main():
@@ -113,7 +123,7 @@ def main():
 
     # Test Results
     test_results = model("data/train_images/p101.jpg")
-    test_results = model.predict("data/train_images/p101.jpg", iou=0.5, conf=0.5, agnostic_nms=True)
+    test_results = model.predict("data/train_images/p101.jpg", iou=0.7, conf=0.5, agnostic_nms=False)
     visualize_and_save_detections("data/train_images/p101.jpg", test_results, os.path.join(output_dir, "test_results.json"), model)
     
     # Uncomment if you want to process all images
