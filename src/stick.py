@@ -36,7 +36,6 @@ def calculate_length_L1(json_data):
         if item['name'] == 'L1':
             points = list(zip(item['segments']['x'], item['segments']['y']))
             max_distance = 0
-   
 
             for i in range(len(points)):
                 for j in range(i + 1, len(points)):
@@ -72,7 +71,7 @@ def extract_data(json_dir, csv_file):
         image_name = row['Pothole number']
 
         image_file_path = os.path.join(
-            json_dir, f'cv_train_p{int(image_name)}.json')
+            json_dir, f'p{int(image_name)}_results.json')
         logging.debug(f"Processing image: {image_file_path}")
 
         # Check if file exists
