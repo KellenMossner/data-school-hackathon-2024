@@ -15,7 +15,6 @@ import math
 open('logs/model.log', 'w').close()
 logging.basicConfig(filename='logs/model.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 def calculate_pothole_area(json_data):
     ratio = calculate_L1_ratio(json_data)
     for item in json_data:
@@ -85,6 +84,19 @@ def calculate_aspect_ratio(json_data):
             return width / height
     return 0.9
 
+def calculate_perimeter(json_data):
+    for item in json_data:
+        if item['name'] == 'pothole':
+            points = list(zip(item['segments']['x'], item['segments']['y']))
+            perimeter = 0
+            for i in range(len(points)):
+                if i == len(points) - 1:
+                    perimeter += distance(points[i], points[0])
+                else:
+                    perimeter += distance(points[i], points[i + 1])
+            return perimeter
+    return 0
+
 
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
@@ -98,6 +110,7 @@ def extract_data(json_dir, csv_file):
     areas = []
     aspect_ratios = []
     l2_lengths = []
+    perimeters = []
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
@@ -124,7 +137,11 @@ def extract_data(json_dir, csv_file):
             # Add L2 length predictor
             l2_length = calculate_length_L2(json_data)
             l2_lengths.append(l2_length)
-            
+
+            # Add perimeter predictor
+            perimeter = calculate_perimeter(json_data)
+            perimeters.append(perimeter)
+
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
 
@@ -140,6 +157,7 @@ def extract_data(json_dir, csv_file):
     valid_df['Area'] = areas
     valid_df['Aspect Ratio'] = aspect_ratios
     valid_df['L2 Length'] = l2_lengths
+    valid_df['Perimeter'] = perimeters
 
     return valid_df
 
@@ -209,7 +227,7 @@ def main():
         # Drop NA
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio']].copy()
+        X = df_train[['Area', 'Aspect Ratio', 'Perimeter']].copy()
         y = df_train['Bags used ']
 
         logging.info(f"Processed data shape: {df_train.shape}")
@@ -254,13 +272,12 @@ def main():
         logging.info("Model Coefficients:")
         logging.info(lm_model_summary)
 
-
         # ------------------- Test Model -------------------------------------------
         # Print csv file
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
-        X_test = df_test[['Area', 'Aspect Ratio']].copy()
+        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter']].copy()
         y_test = df_test['Bags used ']
         y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
