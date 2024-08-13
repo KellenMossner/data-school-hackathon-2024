@@ -57,6 +57,34 @@ def calculate_L1_ratio(json_data):
     else:
         return None
 
+def calculate_length_L2(json_data):
+    for item in json_data:
+        if item['name'] == 'L2':
+            points = list(zip(item['segments']['x'], item['segments']['y']))
+            max_distance = 0
+
+            for i in range(len(points)):
+                for j in range(i + 1, len(points)):
+                    dist = distance(points[i], points[j])
+                    if dist > max_distance:
+                        max_distance = dist
+            return max_distance
+
+    return 121
+    
+def calculate_aspect_ratio(json_data):
+    # Calculate aspect ratio of the pothole from boxes
+    for item in json_data:
+        if item['name'] == 'pothole':
+            x1 = item['box']['x1']
+            x2 = item['box']['x2']
+            y1 = item['box']['y1']
+            y2 = item['box']['y2']
+            width = x2 - x1
+            height = y2 - y1
+            return width / height
+    return 0.9
+
 
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
@@ -68,6 +96,8 @@ def extract_data(json_dir, csv_file):
     df = pd.read_csv(csv_file)
     valid_rows = []  # Store rows that have valid JSON files
     areas = []
+    aspect_ratios = []
+    l2_lengths = []
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
@@ -86,6 +116,15 @@ def extract_data(json_dir, csv_file):
                 json_data = json.load(file)
             area = calculate_pothole_area(json_data)
             areas.append(area)
+
+            # Add aspect ratio predictor
+            aspect_ratio = calculate_aspect_ratio(json_data)
+            aspect_ratios.append(aspect_ratio)
+            
+            # Add L2 length predictor
+            l2_length = calculate_length_L2(json_data)
+            l2_lengths.append(l2_length)
+            
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
 
@@ -99,6 +138,8 @@ def extract_data(json_dir, csv_file):
     # Create a new DataFrame with only valid rows
     valid_df = pd.DataFrame(valid_rows)
     valid_df['Area'] = areas
+    valid_df['Aspect Ratio'] = aspect_ratios
+    valid_df['L2 Length'] = l2_lengths
 
     return valid_df
 
@@ -160,20 +201,23 @@ def perform_cross_validation(X, y, n_splits=10):
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
-    yolo_weights = 'data/kellen_model.pt'
 
     try:
         print("Extracting data...")
         df_train = extract_data(json_dir, csv_file)
         print("Data extracted successfully.")
-        logging.info(f"Processed data shape: {df_train.shape}")
-        logging.debug(f"Processed data columns: {df_train.columns}")
-        logging.debug(f"Dataframe: {df_train.head()}")
         # Drop NA
         df_train = df_train.dropna()
 
-        X = df_train[['Area']]
+        X = df_train[['Area', 'Aspect Ratio']].copy()
         y = df_train['Bags used ']
+
+        logging.info(f"Processed data shape: {df_train.shape}")
+        logging.debug(f"Processed data columns: {df_train.columns}")
+        logging.debug(f"Dataframe: {df_train.head()}")
+
+        # print average Aspect Ratio and L2 Length
+        logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
 
         lm_model, X_test, y_test = train_linear_model(X, y)
 
@@ -193,15 +237,32 @@ def main():
         
     # Get r-squared of test data
     try:
-        df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
-        num_null_entries = df_test.isnull().sum().sum()
-        logging.info(f"Number of null entries in test data: {num_null_entries}")
-        df_test['Area'] = df_test['Area'].fillna(0)
-        X_test = df_test[['Area']]
-        y_test = df_test['Bags used ']
-        y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
 
         # if the prediction is less than 0.25, set to 0.25
+        y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+
+        # Calculate R-squared
+        r2 = r2_score(y_test, y_pred)
+
+        compare = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+        logging.info(f"Predicted bags used vs actual: \n{compare}")
+
+        print(f"R-squared on test data: {r2:.4f}")
+
+        # print summary
+        lm_model_summary = pd.DataFrame(lm_model.coef_, X.columns, columns=['Coefficient'])
+        logging.info("Model Coefficients:")
+        logging.info(lm_model_summary)
+
+
+        # ------------------- Test Model -------------------------------------------
+        # Print csv file
+        df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
+
+        df_test['Area'] = df_test['Area'].fillna(0)
+        X_test = df_test[['Area', 'Aspect Ratio']].copy()
+        y_test = df_test['Bags used ']
+        y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
 
         df_test['Bags used '] = y_pred
@@ -209,6 +270,8 @@ def main():
         df_test[['Pothole number', 'Bags used ']].to_csv('data/test_results.csv', index=False)
         print(df_test)
         logging.info("Results saved to data/test_results.csv")
+
+        # ------------------- Test Model -------------------------------------------
         
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
