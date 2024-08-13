@@ -224,6 +224,10 @@ def perform_cross_validation(X, y, n_splits=10):
         model.fit(X_train, y_train)
         
         y_pred = model.predict(X_val)
+
+        y_pred = np.round(y_pred * 4) / 4
+        y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+
         score = r2_score(y_val, y_pred)
         cv_scores.append(score)
         
@@ -280,8 +284,8 @@ def main():
     try:
 
         # if the prediction is less than 0.25, set to 0.25
+        y_pred = np.ceil(y_pred * 4) / 4
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
-
         # Calculate R-squared
         r2 = r2_score(y_test, y_pred)
 
@@ -304,6 +308,7 @@ def main():
         y_test = df_test['Bags used ']
         y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+        y_pred = np.ceil(y_pred * 4) / 4
 
         df_test['Bags used '] = y_pred
         df_test['Pothole number'] = df_test['Pothole number'].astype(int)
