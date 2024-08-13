@@ -99,6 +99,20 @@ def calculate_perimeter(json_data):
             return perimeter
     return 763.7
 
+def calc_max_diameter(json_data):
+    for item in json_data:
+        if item['name'] == 'pothole':
+            points = list(zip(item['segments']['x'], item['segments']['y']))
+            max_distance = 0
+
+            for i in range(len(points)):
+                for j in range(i + 1, len(points)):
+                    dist = distance(points[i], points[j])
+                    if dist > max_distance:
+                        max_distance = dist
+            return max_distance
+    return 289
+
 
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
@@ -113,6 +127,7 @@ def extract_data(json_dir, csv_file):
     aspect_ratios = []
     l2_lengths = []
     perimeters = []
+    max_diameters = []
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
@@ -144,6 +159,10 @@ def extract_data(json_dir, csv_file):
             perimeter = calculate_perimeter(json_data)
             perimeters.append(perimeter)
 
+            # Max diameter
+            max_diameter = calc_max_diameter(json_data)
+            max_diameters.append(max_diameter)
+
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
 
@@ -160,6 +179,7 @@ def extract_data(json_dir, csv_file):
     valid_df['Aspect Ratio'] = aspect_ratios
     valid_df['L2 Length'] = l2_lengths
     valid_df['Perimeter'] = perimeters
+    valid_df['Max Diameter'] = max_diameters
 
     return valid_df
 
@@ -229,7 +249,7 @@ def main():
         # Drop NA
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio', 'Perimeter']].copy()
+        X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
         y = df_train['Bags used ']
 
         logging.info(f"Processed data shape: {df_train.shape}")
@@ -238,6 +258,7 @@ def main():
 
         # print average Aspect Ratio and L2 Length
         logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
+        logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
 
         lm_model, X_test, y_test = train_linear_model(X, y)
 
@@ -279,7 +300,7 @@ def main():
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
-        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter']].copy()
+        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
         y_test = df_test['Bags used ']
         y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
