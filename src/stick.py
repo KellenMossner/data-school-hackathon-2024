@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from shapely.geometry import Polygon
+from sklearn.model_selection import KFold
+from sklearn.metrics import r2_score
 import logging
 import math
 
@@ -23,7 +25,7 @@ def calculate_pothole_area(json_data):
                 poly = Polygon(points)
                 return np.sqrt(poly.area) / ratio
             else:
-                return None
+                return np.sqrt(poly.area) / 0.3
     return None
 
 
@@ -124,6 +126,36 @@ def train_jonty_model(X, y):
 def train_kellen_model(X, y):
     pass
 
+from sklearn.model_selection import KFold
+from sklearn.metrics import r2_score
+import numpy as np
+
+def perform_cross_validation(X, y, n_splits=10):
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    model = LinearRegression()
+    
+    cv_scores = []
+    
+    for fold, (train_index, val_index) in enumerate(kf.split(X), 1):
+        X_train, X_val = X.iloc[train_index], X.iloc[val_index]
+        y_train, y_val = y.iloc[train_index], y.iloc[val_index]
+        
+        model.fit(X_train, y_train)
+        
+        y_pred = model.predict(X_val)
+        score = r2_score(y_val, y_pred)
+        cv_scores.append(score)
+        
+        logging.info(f"Fold {fold} R-squared: {score:.4f}")
+    
+    mean_r2 = np.mean(cv_scores)
+    std_r2 = np.std(cv_scores)
+    
+    logging.info(f"Cross-validation results:")
+    logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
+    
+    return mean_r2, std_r2
+
 
 def main():
     json_dir = 'data/cv_train_out'
@@ -145,6 +177,9 @@ def main():
 
         lm_model, X_test, y_test = train_linear_model(X, y)
 
+        # Perform cross-validation
+        mean_r2, std_r2 = perform_cross_validation(X, y)
+
         # Make predictions on test set
         y_pred = lm_model.predict(X_test)
 
@@ -164,7 +199,11 @@ def main():
         df_test['Area'] = df_test['Area'].fillna(0)
         X_test = df_test[['Area']]
         y_test = df_test['Bags used ']
-        y_pred = np.abs(lm_model.predict(X_test))
+        y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
+
+        # if the prediction is less than 0.25, set to 0.25
+        y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+
         df_test['Bags used '] = y_pred
         df_test['Pothole number'] = df_test['Pothole number'].astype(int)
         df_test[['Pothole number', 'Bags used ']].to_csv('data/test_results.csv', index=False)
