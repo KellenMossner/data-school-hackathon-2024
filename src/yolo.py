@@ -34,7 +34,8 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
     """
     img = cv2.imread(image_path)
     if img is None:
-        print(f"Warning: Failed to load the image at {os.path.abspath(image_path)}")
+        print(f"Warning: Failed to load the image at {
+              os.path.abspath(image_path)}")
         return
 
     detections = []
@@ -111,7 +112,7 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
 def main():
     # Set the paths
-    model_path = "data/kellen_model.pt"
+    model_path = "data/last.pt"
     train_output_dir = "data/cv_train_out"
     test_output_dir = "data/cv_test_out"
 
@@ -141,7 +142,18 @@ def main():
 #         test_results = model(image_file)
 #         test_results = model.predict(
 #             image_file, iou=0.7, conf=0.5, agnostic_nms=False)
-    
+
+    for image_file in train_image_files:
+        # Test results for the current image
+        test_results = model(image_file)
+        test_results = model.predict(
+            image_file, iou=0.7, conf=0.5, agnostic_nms=False)
+        # Visualize and save detections for training
+        output_path = os.path.join(train_output_dir, os.path.basename(
+            image_file).replace(".jpg", "_results.json"))
+        visualize_and_save_detections(
+            image_file, test_results, output_path, model)
+
     for image_file in test_image_files:
         # Test results for the current image
         test_results = model(image_file)
@@ -152,7 +164,6 @@ def main():
             image_file).replace(".jpg", "_results.json"))
         visualize_and_save_detections(
             image_file, test_results, output_path, model)
-        
 
 
 if __name__ == "__main__":
