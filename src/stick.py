@@ -24,7 +24,9 @@ def calculate_pothole_area(json_data):
                 poly = Polygon(points)
                 return poly.area*ratio**2
             else:
-                return np.sqrt(poly.area) / 0.3
+                poly = Polygon(points)
+                ratio = 503.5/calculate_length_L2()
+                return poly.area*ratio**2
     return None
 
 

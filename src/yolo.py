@@ -34,8 +34,7 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
     """
     img = cv2.imread(image_path)
     if img is None:
-        print(f"Warning: Failed to load the image at {
-              os.path.abspath(image_path)}")
+        print(f"Warning: Failed to load the image at {os.path.abspath(image_path)}")
         return
 
     detections = []
