@@ -15,14 +15,14 @@ import math
 open('logs/model.log', 'w').close()
 logging.basicConfig(filename='logs/model.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def calculate_pothole_area(json_data, ratioExtra):
+def calculate_pothole_area(json_data):
     ratio = calculate_L1_ratio(json_data)
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
             if ratio is not None:
                 poly = Polygon(points)
-                return np.sqrt(poly.area) / ratio
+                return poly.area*ratio**2
             else:
                 return np.sqrt(poly.area) / 0.3
     return None
@@ -49,14 +49,14 @@ def calculate_length_L1(json_data):
 
 
 def calculate_L1_ratio(json_data):
-    DIAGONAL_L1 = 1
+    DIAGONAL_L1 = 503.5
     l1_length = calculate_length_L1(json_data)
     if l1_length is not None:
-        return l1_length / DIAGONAL_L1
+        return DIAGONAL_L1/l1_length
     else:
         return None
 
-def calculate_length_L2(json_data, ratio):
+def calculate_length_L2(json_data):
     for item in json_data:
         if item['name'] == 'L2':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -71,7 +71,7 @@ def calculate_length_L2(json_data, ratio):
 
     return 121
     
-def calculate_aspect_ratio(json_data, ratio):
+def calculate_aspect_ratio(json_data):
     # Calculate aspect ratio of the pothole from boxes
     for item in json_data:
         if item['name'] == 'pothole':
@@ -84,7 +84,7 @@ def calculate_aspect_ratio(json_data, ratio):
             return width / height
     return 0.9
 
-def calculate_perimeter(json_data, ratio):
+def calculate_perimeter(json_data):
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -96,20 +96,6 @@ def calculate_perimeter(json_data, ratio):
                     perimeter += distance(points[i], points[i + 1])
             return perimeter
     return 763.7
-
-def calculate_max_diameter(json_data, ratio):
-    for item in json_data:
-        if item['name'] == 'pothole':
-            points = list(zip(item['segments']['x'], item['segments']['y']))
-            max_distance = 0
-
-            for i in range(len(points)):
-                for j in range(i + 1, len(points)):
-                    dist = distance(points[i], points[j])
-                    if dist > max_distance:
-                        max_distance = dist
-            return max_distance
-    return 0
 
 
 def extract_data(json_dir, csv_file):
@@ -125,7 +111,6 @@ def extract_data(json_dir, csv_file):
     aspect_ratios = []
     l2_lengths = []
     perimeters = []
-    max_diameters = []
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
@@ -142,27 +127,20 @@ def extract_data(json_dir, csv_file):
         try:
             with open(image_file_path, 'r') as file:
                 json_data = json.load(file)
-
-            ratio = calculate_L1_ratio(json_data)
-            
-            area = calculate_pothole_area(json_data, ratio)
+            area = calculate_pothole_area(json_data)
             areas.append(area)
 
             # Add aspect ratio predictor
-            aspect_ratio = calculate_aspect_ratio(json_data, ratio)
+            aspect_ratio = calculate_aspect_ratio(json_data)
             aspect_ratios.append(aspect_ratio)
             
             # Add L2 length predictor
-            l2_length = calculate_length_L2(json_data, ratio)
+            l2_length = calculate_length_L2(json_data)
             l2_lengths.append(l2_length)
 
             # Add perimeter predictor
-            perimeter = calculate_perimeter(json_data, ratio)
+            perimeter = calculate_perimeter(json_data)
             perimeters.append(perimeter)
-
-            # Add max diameter predictor
-            max_diameter = calculate_max_diameter(json_data, ratio)
-            max_diameters.append(max_diameter)
 
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
@@ -180,7 +158,6 @@ def extract_data(json_dir, csv_file):
     valid_df['Aspect Ratio'] = aspect_ratios
     valid_df['L2 Length'] = l2_lengths
     valid_df['Perimeter'] = perimeters
-    valid_df['Max Diameter'] = max_diameters
 
     return valid_df
 
@@ -235,7 +212,6 @@ def perform_cross_validation(X, y, n_splits=10):
     
     logging.info(f"Cross-validation results:")
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
-    print(f"CROSS VALIDATION: Mean (10 fold) R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
     
     return mean_r2, std_r2
 
@@ -243,7 +219,6 @@ def perform_cross_validation(X, y, n_splits=10):
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
-    yolo_weights = 'data/best.pt'
 
     try:
         print("Extracting data...")
@@ -252,7 +227,7 @@ def main():
         # Drop NA
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
+        X = df_train[['Area', 'Aspect Ratio', 'Perimeter']].copy()
         y = df_train['Bags used ']
 
         logging.info(f"Processed data shape: {df_train.shape}")
@@ -261,7 +236,6 @@ def main():
 
         # print average Aspect Ratio and L2 Length
         logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
-        logging.info(f"Mean Max Diameter: {X['Max Diameter'].mean()}")
 
         lm_model, X_test, y_test = train_linear_model(X, y)
 
@@ -303,8 +277,7 @@ def main():
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
-        df_test.drop('L2 Length', axis=1, inplace=True)
-        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
+        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter']].copy()
         y_test = df_test['Bags used ']
         y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
