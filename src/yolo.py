@@ -112,7 +112,7 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
 def main():
     # Set the paths
-    model_path = "data/last.pt"
+    model_path = "data/jonty_best.pt"
     train_output_dir = "data/cv_train_out"
     test_output_dir = "data/cv_test_out"
 
