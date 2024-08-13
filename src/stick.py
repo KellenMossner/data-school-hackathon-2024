@@ -48,7 +48,7 @@ def calculate_length_L1(json_data):
 
 
 def calculate_L1_ratio(json_data):
-    DIAGONAL_L1 = 503.5
+    DIAGONAL_L1 = 1
     l1_length = calculate_length_L1(json_data)
     if l1_length is not None:
         return l1_length / DIAGONAL_L1
@@ -241,6 +241,7 @@ def perform_cross_validation(X, y, n_splits=10):
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
+    yolo_weights = 'data/best.pt'
 
     try:
         print("Extracting data...")
