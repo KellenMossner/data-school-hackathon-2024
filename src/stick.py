@@ -15,7 +15,8 @@ import math
 open('logs/model.log', 'w').close()
 logging.basicConfig(filename='logs/model.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def calculate_pothole_area(json_data, ratio):
+def calculate_pothole_area(json_data, ratioExtra):
+    ratio = calculate_L1_ratio(json_data)
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -55,7 +56,7 @@ def calculate_L1_ratio(json_data):
     else:
         return None
 
-def calculate_length_L2(json_data):
+def calculate_length_L2(json_data, ratio):
     for item in json_data:
         if item['name'] == 'L2':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -70,7 +71,7 @@ def calculate_length_L2(json_data):
 
     return 121
     
-def calculate_aspect_ratio(json_data):
+def calculate_aspect_ratio(json_data, ratio):
     # Calculate aspect ratio of the pothole from boxes
     for item in json_data:
         if item['name'] == 'pothole':
@@ -83,7 +84,7 @@ def calculate_aspect_ratio(json_data):
             return width / height
     return 0.9
 
-def calculate_perimeter(json_data):
+def calculate_perimeter(json_data, ratio):
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -96,7 +97,7 @@ def calculate_perimeter(json_data):
             return perimeter
     return 763.7
 
-def calculate_max_diameter(json_data):
+def calculate_max_diameter(json_data, ratio):
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -148,19 +149,19 @@ def extract_data(json_dir, csv_file):
             areas.append(area)
 
             # Add aspect ratio predictor
-            aspect_ratio = calculate_aspect_ratio(json_data)
+            aspect_ratio = calculate_aspect_ratio(json_data, ratio)
             aspect_ratios.append(aspect_ratio)
             
             # Add L2 length predictor
-            l2_length = calculate_length_L2(json_data)
+            l2_length = calculate_length_L2(json_data, ratio)
             l2_lengths.append(l2_length)
 
             # Add perimeter predictor
-            perimeter = calculate_perimeter(json_data)
+            perimeter = calculate_perimeter(json_data, ratio)
             perimeters.append(perimeter)
 
             # Add max diameter predictor
-            max_diameter = calculate_max_diameter(json_data)
+            max_diameter = calculate_max_diameter(json_data, ratio)
             max_diameters.append(max_diameter)
 
             # Keep the row only if it has a valid JSON file
@@ -234,6 +235,7 @@ def perform_cross_validation(X, y, n_splits=10):
     
     logging.info(f"Cross-validation results:")
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
+    print(f"CROSS VALIDATION: Mean (10 fold) R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
     
     return mean_r2, std_r2
 
