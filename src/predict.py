@@ -9,6 +9,8 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score
 import logging
 import math
+from sklearn.metrics import accuracy_score
+from mlxtend.feature_selection import SequentialFeatureSelector
 
 
 # Configure logging
@@ -25,7 +27,7 @@ def calculate_pothole_area(json_data):
                 return poly.area*ratio**2
             else:
                 poly = Polygon(points)
-                ratio = 503.5/calculate_length_L2()
+                ratio = 503.5/calculate_length_L2(json_data)
                 return poly.area*ratio**2
     return None
 
@@ -196,20 +198,52 @@ def train_linear_model(X, y):
 
     logging.info(f"Model R-squared score on training data: {train_score:.4f}")
     logging.info(f"Model R-squared score on test data: {test_score:.4f}")
+    # Make predictions on test set
+    y_pred = model.predict(X_test)
 
-    return model, X_test, y_test
+    # # Log some sample predictions
+    # for true, pred in zip(y_test[:5], y_pred[:5]):
+    #     logging.info(f"True: {true}, Predicted: {pred:.2f}")
 
+    # if the prediction is less than 0.25, set to 0.25
+    y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+    
+    # Get r-squared of test data
+    # Calculate R-squared
+    r2 = r2_score(y_test, y_pred)
 
-def train_jonty_model(X, y):
-    pass
+    compare = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+    logging.info(f"Predicted bags used vs actual: \n{compare}")
 
+    print(f"R-squared on test data: {r2:.4f}")
 
-def train_kellen_model(X, y):
-    pass
+    # print summary
+    lm_model_summary = pd.DataFrame(model.coef_, X.columns, columns=['Coefficient'])
+    logging.info("Model Coefficients:")
+    logging.info(lm_model_summary)
+    logging.info("Model training completed successfully.")
+    return model
 
-from sklearn.model_selection import KFold
-from sklearn.metrics import r2_score
-import numpy as np
+def stepwise_selection(X, y, forward=True):
+    logging.info("Performing stepwise selection...")
+    model = LinearRegression()
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    sfs = SequentialFeatureSelector(model, forward=forward, k_features='best', scoring='r2', cv=10)
+    sfs_fit = sfs.fit(X_train, y_train)
+    
+    selected_features = sfs_fit.k_feature_names_
+    logging.info(f"Selected features: {selected_features}")
+    
+    X_train_sfs = sfs_fit.transform(X_train)
+    X_test_sfs = X_test[selected_features].copy()
+
+    model.fit(X_train_sfs, y_train)
+    y_pred = model.predict(X_test_sfs)
+
+    # Evaluate performance
+    r2_score = r2_score(y_test, y_pred)
+    logging.info("R-squared score with selected features:", r2_score)
+    return model, selected_features
 
 def perform_cross_validation(X, y, n_splits=10):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
@@ -243,10 +277,9 @@ def main():
     csv_file = 'data/train_labels.csv'
 
     try:
-        print("Extracting data...")
+        # ----- DATA PREPROCESSING -----
         df_train = extract_data(json_dir, csv_file)
-        print("Data extracted successfully.")
-        # Drop NA
+        print("Data extracted successfully")
         df_train = df_train.dropna()
 
         X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
@@ -255,46 +288,25 @@ def main():
         logging.info(f"Processed data shape: {df_train.shape}")
         logging.debug(f"Processed data columns: {df_train.columns}")
         logging.debug(f"Dataframe: {df_train.head()}")
-
+        
         # print average Aspect Ratio and L2 Length
-        logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
-        logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
+        # logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
+        # logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
 
-        lm_model, X_test, y_test = train_linear_model(X, y)
-
-        # Perform cross-validation
+        # ----- SIMPLE LINEAR REGRESSION MODEL -----
+        lm_model = train_linear_model(X, y)
+        
+        # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
+        
+        # ----- FEATURE SELECTION -----
+        # stepwise_model, selected_features = stepwise_selection(X, y, forward=True)
+        
 
-        # Make predictions on test set
-        y_pred = lm_model.predict(X_test)
-
-        # Log some sample predictions
-        for true, pred in zip(y_test[:5], y_pred[:5]):
-            logging.info(f"True: {true}, Predicted: {pred:.2f}")
-
-        logging.info("Model training completed successfully.")
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
         
-    # Get r-squared of test data
     try:
-
-        # if the prediction is less than 0.25, set to 0.25
-        y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
-
-        # Calculate R-squared
-        r2 = r2_score(y_test, y_pred)
-
-        compare = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
-        logging.info(f"Predicted bags used vs actual: \n{compare}")
-
-        print(f"R-squared on test data: {r2:.4f}")
-
-        # print summary
-        lm_model_summary = pd.DataFrame(lm_model.coef_, X.columns, columns=['Coefficient'])
-        logging.info("Model Coefficients:")
-        logging.info(lm_model_summary)
-
         # ------------------- Test Model -------------------------------------------
         # Print csv file
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
@@ -315,7 +327,6 @@ def main():
         
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
-
 
 
 if __name__ == "__main__":

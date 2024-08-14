@@ -146,7 +146,7 @@ def main():
         # Test results for the current image
         test_results = model(image_file)
         test_results = model.predict(
-            image_file, iou=0.7, conf=0.5, agnostic_nms=False)
+            image_file, iou=0.7, conf=0.35, agnostic_nms=False)
         # Visualize and save detections for training
         output_path = os.path.join(train_output_dir, os.path.basename(
             image_file).replace(".jpg", "_results.json"))
@@ -157,7 +157,7 @@ def main():
         # Test results for the current image
         test_results = model(image_file)
         test_results = model.predict(
-            image_file, iou=0.7, conf=0.5, agnostic_nms=False)
+            image_file, iou=0.7, conf=0.35, agnostic_nms=False)
         # Visualize and save detections for training
         output_path = os.path.join(test_output_dir, os.path.basename(
             image_file).replace(".jpg", "_results.json"))
