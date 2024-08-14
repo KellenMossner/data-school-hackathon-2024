@@ -1,6 +1,6 @@
 # Project Specific
-data/cv_train_out/*
-data/cv_test_out/*
+#data/cv_train_out/*
+#data/cv_test_out/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
