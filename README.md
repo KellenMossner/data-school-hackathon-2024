@@ -16,12 +16,7 @@ Stellenbosch University
 python3 src/segment.py
 ```
 
-2. Run the script to remove duplicate segmentation outputs.
-```bash
-python3 src/rem_dup.py
-```
-
-3. Run the script to generate the final output.
+2. Run the script to generate the final output.
 ```bash
 python3 src/predict.py
 ```
