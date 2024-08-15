@@ -366,11 +366,6 @@ def main():
         X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
         y = df_train['Bags used ']
 
-        improved_model = improved_model(X, y)
-
-        # Use the improved model for predictions
-        y_pred = improved_model.predict(X_test)
-
         # Save processed data to a CSV file
         df_train.to_csv('data/processed_data.csv', index=False)
 
@@ -380,9 +375,6 @@ def main():
 
         # ----- SIMPLE LINEAR REGRESSION MODEL -----
         lm_model = train_linear_model(X, y)
-
-        # ----- IMPROVED MODEL ----- 
-        improved_model = improved_model(X, y)
 
         # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
