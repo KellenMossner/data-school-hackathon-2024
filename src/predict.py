@@ -11,6 +11,13 @@ import logging
 import math
 from sklearn.metrics import accuracy_score
 from mlxtend.feature_selection import SequentialFeatureSelector
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import VotingRegressor
 
 
 # Configure logging
@@ -152,8 +159,7 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {
-                          image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
@@ -242,6 +248,59 @@ def train_linear_model(X, y):
     logging.info("Model training completed successfully.")
     return model
 
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import VotingRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+def improved_model(X, y):
+    # Feature engineering
+    X['Area_to_Perimeter'] = X['Area'] / X['Perimeter']
+    X['Compactness'] = 4 * np.pi * X['Area'] / (X['Perimeter'] ** 2)
+    X['Log_Area'] = np.log1p(X['Area'])
+
+    # Create base models
+    linear_reg = LinearRegression()
+    ridge_reg = Ridge()
+    lasso_reg = Lasso()
+
+    # Create voting regressor
+    voting_reg = VotingRegressor([
+        ('linear', linear_reg),
+        ('ridge', ridge_reg),
+        ('lasso', lasso_reg)
+    ])
+
+    # Create pipeline
+    pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', StandardScaler()),
+        ('regressor', voting_reg)
+    ])
+
+    # Define hyperparameters to tune
+    param_grid = {
+        'regressor__linear__fit_intercept': [True, False],
+        'regressor__ridge__alpha': [0.1, 1.0, 10.0],
+        'regressor__ridge__fit_intercept': [True, False],
+        'regressor__lasso__alpha': [0.1, 1.0, 10.0],
+        'regressor__lasso__fit_intercept': [True, False]
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X, y)
+
+    # Get best model
+    best_model = grid_search.best_estimator_
+
+    # Print best parameters and score
+    print("Best parameters:", grid_search.best_params_)
+    print("Best RMSE:", np.sqrt(-grid_search.best_score_))
+
+    return best_model
 
 def stepwise_selection(X, y, forward=True):
     logging.info("Performing stepwise selection...")
@@ -304,13 +363,13 @@ def main():
         print("Data extracted successfully")
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio',
-                      'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
+        X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
         y = df_train['Bags used ']
 
-        logging.info(f"Processed data shape: {df_train.shape}")
-        logging.debug(f"Processed data columns: {df_train.columns}")
-        logging.debug(f"Dataframe: {df_train.head()}")
+        improved_model = improved_model(X, y)
+
+        # Use the improved model for predictions
+        y_pred = improved_model.predict(X_test)
 
         # print average Aspect Ratio and L2 Length
         # logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
@@ -318,6 +377,9 @@ def main():
 
         # ----- SIMPLE LINEAR REGRESSION MODEL -----
         lm_model = train_linear_model(X, y)
+
+        # ----- IMPROVED MODEL ----- 
+        improved_model = improved_model(X, y)
 
         # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
