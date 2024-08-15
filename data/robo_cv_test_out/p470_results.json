@@ -8,7 +8,7 @@
       "confidence": 0.8027549982070923,
       "class": "pothole",
       "class_id": 2,
-      "detection_id": "910cf837-027f-42a2-8df3-5fa675ef5787",
+      "detection_id": "664ed997-8fa5-4bf0-aaac-122fd971f539",
       "image_path": "data/test_images/p470.jpg",
       "prediction_type": "ObjectDetectionModel"
     },
@@ -20,7 +20,7 @@
       "confidence": 0.6661986708641052,
       "class": "L1",
       "class_id": 0,
-      "detection_id": "e651a863-c662-4712-85fd-aa7bcae53760",
+      "detection_id": "e9da799a-3264-4c2e-9b77-2ea891ccc7df",
       "image_path": "data/test_images/p470.jpg",
       "prediction_type": "ObjectDetectionModel"
     },
@@ -32,7 +32,7 @@
       "confidence": 0.6519796848297119,
       "class": "L2",
       "class_id": 1,
-      "detection_id": "87501773-38dd-4481-a67f-9ef433a3e54e",
+      "detection_id": "cde34acf-f44e-404c-bc36-41db84229549",
       "image_path": "data/test_images/p470.jpg",
       "prediction_type": "ObjectDetectionModel"
     }

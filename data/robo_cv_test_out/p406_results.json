@@ -8,7 +8,7 @@
       "confidence": 0.7482753992080688,
       "class": "pothole",
       "class_id": 2,
-      "detection_id": "17b71454-fd61-49be-856d-e9db34153f8a",
+      "detection_id": "e88c1fcd-7d5f-4617-9a8f-df3c807ef1c1",
       "image_path": "data/test_images/p406.jpg",
       "prediction_type": "ObjectDetectionModel"
     }

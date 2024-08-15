@@ -1,0 +1,32 @@
+{
+  "predictions": [
+    {
+      "x": 274.0,
+      "y": 107.0,
+      "width": 36.0,
+      "height": 214.0,
+      "confidence": 0.5524598360061646,
+      "class": "L2",
+      "class_id": 1,
+      "detection_id": "35bedbdf-6286-49d3-85e4-86de7902c81e",
+      "image_path": "data/train_images/p132.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    },
+    {
+      "x": 281.5,
+      "y": 287.5,
+      "width": 27.0,
+      "height": 161.0,
+      "confidence": 0.5500232577323914,
+      "class": "L1",
+      "class_id": 0,
+      "detection_id": "ffd95109-9f0a-4e92-ad2c-43ea8facdf77",
+      "image_path": "data/train_images/p132.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    }
+  ],
+  "image": {
+    "width": "575",
+    "height": "378"
+  }
+}

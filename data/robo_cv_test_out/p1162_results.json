@@ -8,7 +8,7 @@
       "confidence": 0.8746437430381775,
       "class": "L1",
       "class_id": 0,
-      "detection_id": "71bf2229-5c94-4506-9a47-bbd8aaf6b91c",
+      "detection_id": "6e2a382b-d7b6-4949-a621-34d2f875b5de",
       "image_path": "data/test_images/p1162.jpg",
       "prediction_type": "ObjectDetectionModel"
     },
@@ -20,7 +20,7 @@
       "confidence": 0.7609659433364868,
       "class": "L2",
       "class_id": 1,
-      "detection_id": "5d603f66-a668-45ae-a3d6-66bac7962253",
+      "detection_id": "444974ce-2fb5-443b-a251-55ef8d534560",
       "image_path": "data/test_images/p1162.jpg",
       "prediction_type": "ObjectDetectionModel"
     }

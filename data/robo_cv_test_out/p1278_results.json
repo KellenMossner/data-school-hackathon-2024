@@ -8,7 +8,7 @@
       "confidence": 0.8430590629577637,
       "class": "L2",
       "class_id": 1,
-      "detection_id": "36f4bbd3-9d83-4c1c-8282-c8410487b89b",
+      "detection_id": "6abc9b5f-f7d1-4411-a6be-f06b9287aa33",
       "image_path": "data/test_images/p1278.jpg",
       "prediction_type": "ObjectDetectionModel"
     },
@@ -20,7 +20,7 @@
       "confidence": 0.8163151144981384,
       "class": "L1",
       "class_id": 0,
-      "detection_id": "53d69fce-6630-4f9f-ae64-4df314e085db",
+      "detection_id": "919a11f6-d1f5-484f-8202-cbebbfc9e23c",
       "image_path": "data/test_images/p1278.jpg",
       "prediction_type": "ObjectDetectionModel"
     },
@@ -32,7 +32,7 @@
       "confidence": 0.6389545798301697,
       "class": "pothole",
       "class_id": 2,
-      "detection_id": "de3b5482-6057-4779-beb1-1ba326ccb5b7",
+      "detection_id": "e2b7d64e-6924-46ba-8fef-11e0979f77d5",
       "image_path": "data/test_images/p1278.jpg",
       "prediction_type": "ObjectDetectionModel"
     }

@@ -1,0 +1,44 @@
+{
+  "predictions": [
+    {
+      "x": 205.0,
+      "y": 204.0,
+      "width": 106.0,
+      "height": 96.0,
+      "confidence": 0.8457661867141724,
+      "class": "pothole",
+      "class_id": 2,
+      "detection_id": "d16e2c64-79e6-4e19-9a1b-da9b3e8c3a9d",
+      "image_path": "data/train_images/p1111.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    },
+    {
+      "x": 210.5,
+      "y": 333.5,
+      "width": 21.0,
+      "height": 89.0,
+      "confidence": 0.765438437461853,
+      "class": "L2",
+      "class_id": 1,
+      "detection_id": "ebcd2079-a6e1-4a18-9805-8a9af0013619",
+      "image_path": "data/train_images/p1111.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    },
+    {
+      "x": 210.0,
+      "y": 209.5,
+      "width": 20.0,
+      "height": 185.0,
+      "confidence": 0.6549019813537598,
+      "class": "L1",
+      "class_id": 0,
+      "detection_id": "8df73d1d-86d8-4129-8e3d-281b332db0d6",
+      "image_path": "data/train_images/p1111.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    }
+  ],
+  "image": {
+    "width": "378",
+    "height": "378"
+  }
+}
