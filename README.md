@@ -10,3 +10,13 @@ Stellenbosch University
 | James Milne    | 25917307  |
 | Kellen Mossner | 26024284  |S
 
+## Execution
+1. Run the Computer Vision model to segment images.
+```bash
+python3 src/segment.py
+```
+
+2. Run the script to generate the final output.
+```bash
+python3 src/predict.py
+```

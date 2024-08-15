@@ -1,0 +1,20 @@
+{
+  "predictions": [
+    {
+      "x": 200.5,
+      "y": 189.5,
+      "width": 355.0,
+      "height": 377.0,
+      "confidence": 0.9351069331169128,
+      "class": "pothole",
+      "class_id": 2,
+      "detection_id": "ff9d0ee6-df4a-4295-ad68-00a6a5bf287c",
+      "image_path": "data/train_images/p1257.jpg",
+      "prediction_type": "ObjectDetectionModel"
+    }
+  ],
+  "image": {
+    "width": "378",
+    "height": "378"
+  }
+}

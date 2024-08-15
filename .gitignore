@@ -1,6 +1,8 @@
 # Project Specific
 data/cv_train_out/*
 data/cv_test_out/*
+data/robo_cv_test_out/*
+data/robo_cv_train_out/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -133,6 +135,7 @@ ENV/
 env.bak/
 venv.bak/
 .venv
+.DS_Store
 
 # Spyder project settings
 .spyderproject
