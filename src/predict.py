@@ -371,6 +371,9 @@ def main():
         # Use the improved model for predictions
         y_pred = improved_model.predict(X_test)
 
+        # Save processed data to a CSV file
+        df_train.to_csv('data/processed_data.csv', index=False)
+
         # print average Aspect Ratio and L2 Length
         # logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
         # logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
@@ -396,6 +399,10 @@ def main():
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
+
+        # Save processed data to a CSV file
+        df_test.to_csv('data/processed_test_data.csv', index=False)
+
         X_test = df_test[['Area', 'Aspect Ratio',
                           'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
         y_test = df_test['Bags used ']
