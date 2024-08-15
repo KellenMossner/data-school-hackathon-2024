@@ -177,15 +177,15 @@ def segment_roboflow(train_image_dir, test_image_dir):
 
 def main():
     # Set the paths
-    model_path = "data/kellen_best.pt"
+    model_path = "data/final_best.pt"
     train_image_dir = "data/train_images/"
     test_image_dir = "data/test_images/"
     
     # Segment the images using the model trained by YoloV8
-    # segment_yolo(model_path, train_image_dir, test_image_dir)
+    segment_yolo(model_path, train_image_dir, test_image_dir)
 
     # Segment the images using the model trained by roboflow
-    segment_roboflow(train_image_dir, test_image_dir)
+    # segment_roboflow(train_image_dir, test_image_dir)
 
 if __name__ == "__main__":
     main()
