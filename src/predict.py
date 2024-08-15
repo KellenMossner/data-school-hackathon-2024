@@ -192,7 +192,6 @@ def extract_data(json_dir, csv_file):
     valid_df['Area Squared'] = np.square(valid_df['Area'])
     return valid_df
 
-
 def train_linear_model(X, y):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
