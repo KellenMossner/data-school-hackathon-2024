@@ -121,6 +121,11 @@ def calc_max_diameter(json_data):
             return max_distance
     return 289
 
+def isL2present(json_data):
+    for item in json_data:
+        if item['name'] == 'L2':
+            return True
+    return False
 
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
@@ -136,6 +141,7 @@ def extract_data(json_dir, csv_file):
     l2_lengths = []
     perimeters = []
     max_diameters = []
+    l2_presents = []
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
@@ -172,6 +178,10 @@ def extract_data(json_dir, csv_file):
             max_diameter = calc_max_diameter(json_data)
             max_diameters.append(max_diameter)
 
+            # L2 present
+            l2_present = isL2present(json_data)
+            l2_presents.append(l2_present)
+
             # Keep the row only if it has a valid JSON file
             valid_rows.append(row)
 
@@ -190,6 +200,7 @@ def extract_data(json_dir, csv_file):
     valid_df['Perimeter'] = perimeters
     valid_df['Max Diameter'] = max_diameters
     valid_df['Area Squared'] = np.square(valid_df['Area'])
+    valid_df['L2 Present'] = l2_presents
     return valid_df
 
 def train_linear_model(X, y):
@@ -294,7 +305,7 @@ def main():
         df_train = df_train.dropna()
 
         X = df_train[['Area', 'Aspect Ratio',
-                      'Perimeter', 'Max Diameter', 'Area Squared']].copy()
+                      'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
         y = df_train['Bags used ']
 
         logging.info(f"Processed data shape: {df_train.shape}")
@@ -324,7 +335,7 @@ def main():
 
         df_test['Area'] = df_test['Area'].fillna(0)
         X_test = df_test[['Area', 'Aspect Ratio',
-                          'Perimeter', 'Max Diameter', 'Area Squared']].copy()
+                          'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
         y_test = df_test['Bags used ']
         y_pred = np.round(np.abs(lm_model.predict(X_test)), 2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
