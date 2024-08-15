@@ -18,6 +18,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.ensemble import VotingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
 
 
 # Configure logging
@@ -207,6 +209,9 @@ def extract_data(json_dir, csv_file):
     valid_df['Max Diameter'] = max_diameters
     valid_df['Area Squared'] = np.square(valid_df['Area'])
     valid_df['L2 Present'] = l2_presents
+    valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
+    valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
+    valid_df['Log_Area'] = np.log1p(valid_df['Area'])
     return valid_df
 
 def train_linear_model(X, y):
@@ -248,13 +253,6 @@ def train_linear_model(X, y):
     logging.info("Model training completed successfully.")
     return model
 
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.ensemble import VotingRegressor
-from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-
 def improved_model(X, y):
     # Feature engineering
     X['Area_to_Perimeter'] = X['Area'] / X['Perimeter']
@@ -265,12 +263,14 @@ def improved_model(X, y):
     linear_reg = LinearRegression()
     ridge_reg = Ridge()
     lasso_reg = Lasso()
+    rf_reg = RandomForestRegressor(random_state=42)
 
     # Create voting regressor
     voting_reg = VotingRegressor([
         ('linear', linear_reg),
         ('ridge', ridge_reg),
-        ('lasso', lasso_reg)
+        ('lasso', lasso_reg),
+        ('rf', rf_reg)
     ])
 
     # Create pipeline
@@ -286,7 +286,10 @@ def improved_model(X, y):
         'regressor__ridge__alpha': [0.1, 1.0, 10.0],
         'regressor__ridge__fit_intercept': [True, False],
         'regressor__lasso__alpha': [0.1, 1.0, 10.0],
-        'regressor__lasso__fit_intercept': [True, False]
+        'regressor__lasso__fit_intercept': [True, False],
+        'regressor__rf__n_estimators': [100, 200],
+        'regressor__rf__max_depth': [None, 10, 20],
+        'regressor__rf__min_samples_split': [2, 5]
     }
 
     # Perform grid search
@@ -301,6 +304,35 @@ def improved_model(X, y):
     print("Best RMSE:", np.sqrt(-grid_search.best_score_))
 
     return best_model
+
+def gradient_boosting_model(X, y):
+    # Define the model
+    gbm = GradientBoostingRegressor(n_estimators=200, learning_rate=0.1, max_depth=3, random_state=42)
+    
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Train the model
+    gbm.fit(X_train, y_train)
+    
+    # Predict on test data
+    y_pred = gbm.predict(X_test)
+    
+    # Ensure predictions are not less than 0.25
+    y_pred = np.maximum(y_pred, 0.25)
+    
+    # Calculate and log R-squared
+    r2 = r2_score(y_test, y_pred)
+    mse = mean_squared_error(y_test, y_pred)
+    
+    logging.info(f"Gradient Boosting - R-squared: {r2:.4f}")
+    logging.info(f"Gradient Boosting - Mean Squared Error: {mse:.4f}")
+    
+    print(f"R-squared on test data: {r2:.4f}")
+    print(f"Mean Squared Error on test data: {mse:.4f}")
+    
+    return gbm
+
 
 def stepwise_selection(X, y, forward=True):
     logging.info("Performing stepwise selection...")
@@ -328,7 +360,7 @@ def stepwise_selection(X, y, forward=True):
 
 def perform_cross_validation(X, y, n_splits=10):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-    model = LinearRegression()
+    model = RandomForestRegressor(random_state=42)
 
     cv_scores = []
 
@@ -369,25 +401,17 @@ def main():
         # Save processed data to a CSV file
         df_train.to_csv('data/processed_data.csv', index=False)
 
-        # print average Aspect Ratio and L2 Length
-        # logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
-        # logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
-
-        # ----- SIMPLE LINEAR REGRESSION MODEL -----
-        lm_model = train_linear_model(X, y)
+        # ----- IMPROVED MODEL -----
+        model = improved_model(X, y)
 
         # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
-
-        # ----- FEATURE SELECTION -----
-        # stepwise_model, selected_features = stepwise_selection(X, y, forward=True)
 
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
 
     try:
         # ------------------- Test Model -------------------------------------------
-        # Print csv file
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
@@ -397,9 +421,12 @@ def main():
 
         X_test = df_test[['Area', 'Aspect Ratio',
                           'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
-        y_test = df_test['Bags used ']
-        y_pred = np.round(np.abs(lm_model.predict(X_test)), 2)
-        y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
+        
+        # Make predictions using the improved model
+        y_pred = model.predict(X_test)
+
+        # Ensure predictions are not less than 0.25
+        y_pred = np.maximum(y_pred, 0.25)
 
         df_test['Bags used '] = y_pred
         df_test['Pothole number'] = df_test['Pothole number'].astype(int)
@@ -408,10 +435,8 @@ def main():
         print(df_test)
         logging.info("Results saved to data/test_results.csv")
 
-        # ------------------- Test Model -------------------------------------------
-
     except Exception as e:
-        logging.error(f"An error occurred in main execution: {str(e)}")
+        logging.error(f"An error occurred in test execution: {str(e)}")
 
 
 if __name__ == "__main__":
