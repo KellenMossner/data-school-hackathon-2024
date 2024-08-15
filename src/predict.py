@@ -15,7 +15,9 @@ from mlxtend.feature_selection import SequentialFeatureSelector
 
 # Configure logging
 open('logs/model.log', 'w').close()
-logging.basicConfig(filename='logs/model.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs/model.log', level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def calculate_pothole_area(json_data):
     ratio = calculate_L1_ratio(json_data)
@@ -60,6 +62,7 @@ def calculate_L1_ratio(json_data):
     else:
         return None
 
+
 def calculate_length_L2(json_data):
     for item in json_data:
         if item['name'] == 'L2':
@@ -74,7 +77,8 @@ def calculate_length_L2(json_data):
             return max_distance
 
     return 121
-    
+
+
 def calculate_aspect_ratio(json_data):
     # Calculate aspect ratio of the pothole from boxes
     for item in json_data:
@@ -88,6 +92,7 @@ def calculate_aspect_ratio(json_data):
             return width / height
     return 0.9
 
+
 def calculate_perimeter(json_data):
     for item in json_data:
         if item['name'] == 'pothole':
@@ -100,6 +105,7 @@ def calculate_perimeter(json_data):
                     perimeter += distance(points[i], points[i + 1])
             return perimeter
     return 763.7
+
 
 def calc_max_diameter(json_data):
     for item in json_data:
@@ -140,7 +146,8 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {
+                          image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
@@ -152,7 +159,7 @@ def extract_data(json_dir, csv_file):
             # Add aspect ratio predictor
             aspect_ratio = calculate_aspect_ratio(json_data)
             aspect_ratios.append(aspect_ratio)
-            
+
             # Add L2 length predictor
             l2_length = calculate_length_L2(json_data)
             l2_lengths.append(l2_length)
@@ -182,7 +189,7 @@ def extract_data(json_dir, csv_file):
     valid_df['L2 Length'] = l2_lengths
     valid_df['Perimeter'] = perimeters
     valid_df['Max Diameter'] = max_diameters
-
+    valid_df['Area Squared'] = np.square(valid_df['Area'])
     return valid_df
 
 
@@ -207,7 +214,7 @@ def train_linear_model(X, y):
 
     # if the prediction is less than 0.25, set to 0.25
     y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
-    
+
     # Get r-squared of test data
     # Calculate R-squared
     r2 = r2_score(y_test, y_pred)
@@ -218,22 +225,26 @@ def train_linear_model(X, y):
     print(f"R-squared on test data: {r2:.4f}")
 
     # print summary
-    lm_model_summary = pd.DataFrame(model.coef_, X.columns, columns=['Coefficient'])
+    lm_model_summary = pd.DataFrame(
+        model.coef_, X.columns, columns=['Coefficient'])
     logging.info("Model Coefficients:")
     logging.info(lm_model_summary)
     logging.info("Model training completed successfully.")
     return model
 
+
 def stepwise_selection(X, y, forward=True):
     logging.info("Performing stepwise selection...")
     model = LinearRegression()
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    sfs = SequentialFeatureSelector(model, forward=forward, k_features='best', scoring='r2', cv=10)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42)
+    sfs = SequentialFeatureSelector(
+        model, forward=forward, k_features='best', scoring='r2', cv=10)
     sfs_fit = sfs.fit(X_train, y_train)
-    
+
     selected_features = sfs_fit.k_feature_names_
     logging.info(f"Selected features: {selected_features}")
-    
+
     X_train_sfs = sfs_fit.transform(X_train)
     X_test_sfs = X_test[selected_features].copy()
 
@@ -245,30 +256,31 @@ def stepwise_selection(X, y, forward=True):
     logging.info("R-squared score with selected features:", r2_score)
     return model, selected_features
 
+
 def perform_cross_validation(X, y, n_splits=10):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     model = LinearRegression()
-    
+
     cv_scores = []
-    
+
     for fold, (train_index, val_index) in enumerate(kf.split(X), 1):
         X_train, X_val = X.iloc[train_index], X.iloc[val_index]
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
-        
+
         model.fit(X_train, y_train)
-        
+
         y_pred = model.predict(X_val)
         score = r2_score(y_val, y_pred)
         cv_scores.append(score)
-        
+
         logging.info(f"Fold {fold} R-squared: {score:.4f}")
-    
+
     mean_r2 = np.mean(cv_scores)
     std_r2 = np.std(cv_scores)
-    
+
     logging.info(f"Cross-validation results:")
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
-    
+
     return mean_r2, std_r2
 
 
@@ -282,49 +294,51 @@ def main():
         print("Data extracted successfully")
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
+        X = df_train[['Area', 'Aspect Ratio',
+                      'Perimeter', 'Max Diameter', 'Area Squared']].copy()
         y = df_train['Bags used ']
 
         logging.info(f"Processed data shape: {df_train.shape}")
         logging.debug(f"Processed data columns: {df_train.columns}")
         logging.debug(f"Dataframe: {df_train.head()}")
-        
+
         # print average Aspect Ratio and L2 Length
         # logging.info(f"Average Aspect Ratio: {X['Aspect Ratio'].mean()}")
         # logging.info(f"Average Diameter: {X['Max Diameter'].mean()}")
 
         # ----- SIMPLE LINEAR REGRESSION MODEL -----
         lm_model = train_linear_model(X, y)
-        
+
         # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
-        
+
         # ----- FEATURE SELECTION -----
         # stepwise_model, selected_features = stepwise_selection(X, y, forward=True)
-        
 
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
-        
+
     try:
         # ------------------- Test Model -------------------------------------------
         # Print csv file
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
-        X_test = df_test[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter']].copy()
+        X_test = df_test[['Area', 'Aspect Ratio',
+                          'Perimeter', 'Max Diameter', 'Area Squared']].copy()
         y_test = df_test['Bags used ']
-        y_pred = np.round(np.abs(lm_model.predict(X_test)),2)
+        y_pred = np.round(np.abs(lm_model.predict(X_test)), 2)
         y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
 
         df_test['Bags used '] = y_pred
         df_test['Pothole number'] = df_test['Pothole number'].astype(int)
-        df_test[['Pothole number', 'Bags used ']].to_csv('data/test_results.csv', index=False)
+        df_test[['Pothole number', 'Bags used ']].to_csv(
+            'data/test_results.csv', index=False)
         print(df_test)
         logging.info("Results saved to data/test_results.csv")
 
         # ------------------- Test Model -------------------------------------------
-        
+
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
 
