@@ -141,40 +141,6 @@ def segment_yolo(model_path, train_image_dir, test_image_dir):
         visualize_and_save_detections(
             image_file, test_results, output_path, model)
 
-def segment_roboflow(train_image_dir, test_image_dir):
-    train_output_dir = "data/robo_cv_train_out"
-    test_output_dir = "data/robo_cv_test_out"
-    # Create output directory if it doesn't exist
-    os.makedirs(train_output_dir, exist_ok=True)
-    os.makedirs(test_output_dir, exist_ok=True)
-    
-    API_KEY = os.getenv('API_KEY')
-    from roboflow import Roboflow
-    rf = Roboflow(api_key=API_KEY) #if this doesnt run then add the api key locally: export API_KEY=your_key
-    project = rf.workspace("data-school-hackathon").project("patch-perfect-fq7m5")
-    model = project.version(8).model
-    
-    # Get a list of all image files in the directory
-    train_image_files = glob.glob(os.path.join(train_image_dir, "*.jpg"))
-    test_image_files = glob.glob(os.path.join(test_image_dir, "*.jpg"))
-
-    for image_file in train_image_files:
-        # Test results for the current image
-        test_results = model.predict(
-            image_file, overlap=30, confidence=0.5)
-        # Visualize and save detections for training
-        output_path = os.path.join(train_output_dir, os.path.basename(
-            image_file).replace(".jpg", "_results.json"))
-        save_detections_as_json(test_results.json(), output_path)
-    for image_file in test_image_files:
-        # Test results for the current image
-        test_results = model.predict(
-            image_file, overlap=30, confidence=0.5)
-        # Visualize and save detections for training
-        output_path = os.path.join(test_output_dir, os.path.basename(
-            image_file).replace(".jpg", "_results.json"))
-        save_detections_as_json(test_results.json(), output_path)
-
 def main():
     # Set the paths
     model_path = "data/final_best.pt"
@@ -184,8 +150,6 @@ def main():
     # Segment the images using the model trained by YoloV8
     segment_yolo(model_path, train_image_dir, test_image_dir)
 
-    # Segment the images using the model trained by roboflow
-    # segment_roboflow(train_image_dir, test_image_dir)
 
 if __name__ == "__main__":
     main()
