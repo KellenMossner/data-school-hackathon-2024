@@ -325,7 +325,11 @@ def extract_data(json_dir, csv_file):
             logging.error(f"Error processing {image_file_path}: {str(e)}")
 
     # Create a DataFrame from the list of dictionaries
-    valid_df = pd.DataFrame(data)
+    json_df = pd.DataFrame(data)
+    
+    # Merge the original CSV DataFrame with the JSON DataFrame
+    valid_df = pd.merge(df, json_df, on='Pothole number', how='inner')
+    
     # Feature engineering
     valid_df['Area Squared'] = np.square(valid_df['Area'])
     valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
@@ -536,6 +540,7 @@ def main():
     try:
         # ----- DATA PREPROCESSING -----
         df_train = extract_data(json_dir, csv_file)
+        print(df_train)
         print("Data extracted successfully")
         df_train = df_train.dropna()
 
