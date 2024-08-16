@@ -41,8 +41,10 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
     if results[0].masks is not None:
         classes = []
-        for c in results[0].boxes.cls:
-            classes.append(int(c))
+        confs = []
+        for box in results[0].boxes:
+            classes.append(int(box.cls))
+            confs.append(float(box.conf))
         for i, mask in enumerate(results[0].masks.data):
             mask = mask.cpu().numpy()  # Convert to numpy array
             # Resize to match image size
@@ -74,11 +76,13 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
             # Get the correct class name using the class id from results[0].boxes.cls
             class_id = classes[i]
             class_name = names[class_id]
+            confidence = confs[i]
 
             # Prepare detection info
             detection_info = {
                 "name": class_name,
                 "class": class_id,
+                "confidence": confidence,
                 "box": {
                     "x1": float(min(x_points)),
                     "y1": float(min(y_points)),
@@ -90,10 +94,6 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
                     "y": y_points
                 }
             }
-
-            # Include confidence if available
-            if results[0].probs is not None:
-                detection_info["confidence"] = float(results[0].probs[i])
 
             detections.append(detection_info)
 

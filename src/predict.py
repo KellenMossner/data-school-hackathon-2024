@@ -48,6 +48,44 @@ def calculate_pothole_area(json_data):
                 return poly.area*ratio**2
     return None
 
+def pothole_confidence(json_data):
+    """
+    Calculates the confidence level of a pothole in the given JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    float: The confidence level of the pothole.
+    """
+    
+    for item in json_data:
+        if item['name'] == 'pothole':
+            return item['confidence']
+
+def l1_confidence(json_data):
+    """
+    Calculates the confidence level of the L1 segment in the given JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    float: The confidence level of the L1 segment.
+    """
+    
+    for item in json_data:
+        if item['name'] == 'L1':
+            return item['confidence']
+
+def l2_confidence(json_data):
+    """
+    Calculates the confidence level of the L2 segment in the given JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    float: The confidence level of the L2 segment.
+    """
+    
+    for item in json_data:
+        if item['name'] == 'L2':
+            return item['confidence']
 
 def distance(point1, point2):
     """
@@ -246,19 +284,11 @@ def extract_data(json_dir, csv_file):
     logging.info(f"Using CSV file: {csv_file}")
 
     df = pd.read_csv(csv_file)
-    valid_rows = []  # Store rows that have valid JSON files
-    areas = []
-    aspect_ratios = []
-    l2_lengths = []
-    perimeters = []
-    max_diameters = []
-    l2_presents = []
+    data = []  # List to store dictionaries of valid rows
 
     for _, row in df.iterrows():
         image_name = row['Pothole number']
-
-        image_file_path = os.path.join(
-            json_dir, f'p{int(image_name)}_results.json')
+        image_file_path = os.path.join(json_dir, f'p{int(image_name)}_results.json')
         logging.debug(f"Processing image: {image_file_path}")
 
         # Check if file exists
@@ -269,51 +299,39 @@ def extract_data(json_dir, csv_file):
         try:
             with open(image_file_path, 'r') as file:
                 json_data = json.load(file)
-            area = calculate_pothole_area(json_data)
-            areas.append(area)
-
-            # Add aspect ratio predictor
-            aspect_ratio = calculate_aspect_ratio(json_data)
-            aspect_ratios.append(aspect_ratio)
-
-            # Add L2 length predictor
-            l2_length = calculate_length_L2(json_data)
-            l2_lengths.append(l2_length)
-
-            # Add perimeter predictor
-            perimeter = calculate_perimeter(json_data)
-            perimeters.append(perimeter)
-
-            # Max diameter
-            max_diameter = calc_max_diameter(json_data)
-            max_diameters.append(max_diameter)
-
-            # L2 present
-            l2_present = isL2present(json_data)
-            l2_presents.append(l2_present)
-
-            # Keep the row only if it has a valid JSON file
-            valid_rows.append(row)
-
+            
+            # Create a dictionary for the current row
+            row_data = {
+                'Pothole number': image_name,
+                'Area': calculate_pothole_area(json_data),
+                'Aspect Ratio': calculate_aspect_ratio(json_data),
+                'L2 Length': calculate_length_L2(json_data),
+                'Perimeter': calculate_perimeter(json_data),
+                'Max Diameter': calc_max_diameter(json_data),
+                'L2 Present': isL2present(json_data),
+                'Pothole Confidence': pothole_confidence(json_data),
+                'L1 Confidence': l1_confidence(json_data),
+                'L2 Confidence': l2_confidence(json_data)
+            }
+            
             # Log the area
-            logging.debug(f"Area of pothole in image {image_name}: {area:.2f}")
+            logging.debug(f"Area of pothole in image {image_name}: {row_data['Area']:.2f}")
+            
+            # Append the dictionary to the data list
+            data.append(row_data)
         except json.JSONDecodeError:
             logging.error(f"Invalid JSON in file: {image_file_path}")
         except Exception as e:
             logging.error(f"Error processing {image_file_path}: {str(e)}")
 
-    # Create a new DataFrame with only valid rows
-    valid_df = pd.DataFrame(valid_rows)
-    valid_df['Area'] = areas
-    valid_df['Aspect Ratio'] = aspect_ratios
-    valid_df['L2 Length'] = l2_lengths
-    valid_df['Perimeter'] = perimeters
-    valid_df['Max Diameter'] = max_diameters
+    # Create a DataFrame from the list of dictionaries
+    valid_df = pd.DataFrame(data)
+    # Feature engineering
     valid_df['Area Squared'] = np.square(valid_df['Area'])
-    valid_df['L2 Present'] = l2_presents
     valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
     valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
     valid_df['Log_Area'] = np.log1p(valid_df['Area'])
+
     return valid_df
 
 def train_linear_model(X, y):
@@ -475,39 +493,6 @@ def gradient_boosting_model(X, y):
     
     return gbm
 
-def stepwise_selection(X, y, forward=True):
-    """
-    Performs stepwise selection to select the best features for linear regression.
-    Args:
-        X (array-like): The input features.
-        y (array-like): The target variable.
-        forward (bool, optional): Whether to perform forward selection. Defaults to True.
-    Returns:
-        tuple: A tuple containing the trained model and the selected features.
-    """
-    
-    logging.info("Performing stepwise selection...")
-    model = LinearRegression()
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42)
-    sfs = SequentialFeatureSelector(
-        model, forward=forward, k_features='best', scoring='r2', cv=10)
-    sfs_fit = sfs.fit(X_train, y_train)
-
-    selected_features = sfs_fit.k_feature_names_
-    logging.info(f"Selected features: {selected_features}")
-
-    X_train_sfs = sfs_fit.transform(X_train)
-    X_test_sfs = X_test[selected_features].copy()
-
-    model.fit(X_train_sfs, y_train)
-    y_pred = model.predict(X_test_sfs)
-
-    # Evaluate performance
-    r2_score = r2_score(y_test, y_pred)
-    logging.info("R-squared score with selected features:", r2_score)
-    return model, selected_features
-
 def perform_cross_validation(X, y, n_splits=10):
     """
     Perform cross-validation using KFold and RandomForestRegressor.
@@ -554,7 +539,7 @@ def main():
         print("Data extracted successfully")
         df_train = df_train.dropna()
 
-        X = df_train[['Area', 'Aspect Ratio', 'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
+        X = df_train.loc[:, df_train.columns != 'Bags used '].copy()
         y = df_train['Bags used ']
 
         # Save processed data to a CSV file
@@ -578,9 +563,7 @@ def main():
         # Save processed data to a CSV file
         df_test.to_csv('data/processed_test_data.csv', index=False)
 
-        X_test = df_test[['Area', 'Aspect Ratio',
-                          'Perimeter', 'Max Diameter', 'Area Squared', 'L2 Present', 'L2 Length']].copy()
-        
+        X_test = df_test.loc[:, df_test.columns != 'Bags used '].copy()
         # Make predictions using the improved model
         y_pred = model.predict(X_test)
 
