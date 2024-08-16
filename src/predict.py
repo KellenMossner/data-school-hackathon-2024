@@ -1,26 +1,24 @@
-import json
-import os
-import pandas as pd
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from shapely.geometry import Polygon
-from sklearn.model_selection import KFold
-from sklearn.metrics import r2_score
-import logging
-import math
-from sklearn.metrics import accuracy_score
 from mlxtend.feature_selection import SequentialFeatureSelector
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import VotingRegressor
+from sklearn.model_selection import KFold
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.ensemble import VotingRegressor
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_squared_error
-
+from shapely.geometry import Polygon
+from sklearn.metrics import r2_score
+import pandas as pd
+import numpy as np
+import logging
+import math
+import json
+import os
 
 # Configure logging
 open('logs/model.log', 'w').close()
@@ -29,6 +27,14 @@ logging.basicConfig(filename='logs/model.log', level=logging.DEBUG,
 
 
 def calculate_pothole_area(json_data):
+    """
+    Calculate the area of a pothole based on the provided JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries containing JSON data.
+    Returns:
+    float or None: The calculated area of the pothole, multiplied by the square of the ratio if available. Returns None if no pothole is found.
+    """
+    
     ratio = calculate_L1_ratio(json_data)
     for item in json_data:
         if item['name'] == 'pothole':
@@ -44,10 +50,27 @@ def calculate_pothole_area(json_data):
 
 
 def distance(point1, point2):
+    """
+    Calculates the Euclidean distance between two points.
+    Parameters:
+    point1 (tuple): The coordinates of the first point in the form (x, y).
+    point2 (tuple): The coordinates of the second point in the form (x, y).
+    Returns:
+    float: The Euclidean distance between the two points.
+    """
+    
     return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
 
-
 def calculate_length_L1(json_data):
+    """
+    Calculate the length of the L1 segment in the given JSON data.
+    Parameters:
+    - json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    - float or None: The length of the L1 segment if found, None otherwise.
+    """
+    # Rest of the code...
+    
     for item in json_data:
         if item['name'] == 'L1':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -62,8 +85,15 @@ def calculate_length_L1(json_data):
 
     return None
 
-
 def calculate_L1_ratio(json_data):
+    """
+    Calculate the L1 ratio based on the given JSON data.
+    Parameters:
+    json_data (dict): A dictionary containing the JSON data.
+    Returns:
+    float or None: The calculated L1 ratio if the length of L1 is not None, otherwise None.
+    """
+    
     DIAGONAL_L1 = 503.5
     l1_length = calculate_length_L1(json_data)
     if l1_length is not None:
@@ -71,8 +101,34 @@ def calculate_L1_ratio(json_data):
     else:
         return None
 
-
 def calculate_length_L2(json_data):
+    """
+    Calculates the length of the L2 segment in the given JSON data.
+    Parameters:
+    - json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    - float: The length of the L2 segment.
+    Example:
+    >>> json_data = [
+    ...     {
+    ...         'name': 'L1',
+    ...         'segments': {
+    ...             'x': [1, 2, 3],
+    ...             'y': [4, 5, 6]
+    ...         }
+    ...     },
+    ...     {
+    ...         'name': 'L2',
+    ...         'segments': {
+    ...             'x': [7, 8, 9],
+    ...             'y': [10, 11, 12]
+    ...         }
+    ...     }
+    ... ]
+    >>> calculate_length_L2(json_data)
+    5.196152422706632
+    """
+    
     for item in json_data:
         if item['name'] == 'L2':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -87,8 +143,18 @@ def calculate_length_L2(json_data):
 
     return 121
 
-
 def calculate_aspect_ratio(json_data):
+    """
+    Calculate the aspect ratio of the pothole from the given JSON data.
+    Parameters:
+    - json_data (list): A list of dictionaries containing information about the pothole.
+    Returns:
+    - float: The aspect ratio of the pothole.
+    Notes:
+    - The aspect ratio is calculated by dividing the width of the pothole by its height.
+    - If no pothole is found in the JSON data, a default aspect ratio of 0.9 is returned.
+    """
+    
     # Calculate aspect ratio of the pothole from boxes
     for item in json_data:
         if item['name'] == 'pothole':
@@ -101,8 +167,16 @@ def calculate_aspect_ratio(json_data):
             return width / height
     return 0.9
 
-
 def calculate_perimeter(json_data):
+    """
+    Calculate the perimeter of a pothole based on the given JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries representing the JSON data.
+    Returns:
+    float: The perimeter of the pothole.
+    """
+    # Rest of the code...
+    
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -115,8 +189,16 @@ def calculate_perimeter(json_data):
             return perimeter
     return 763.7
 
-
 def calc_max_diameter(json_data):
+    """
+    Calculates the maximum diameter of a pothole from the given JSON data.
+    Parameters:
+    json_data (list): A list of dictionaries representing the JSON data.
+    Returns:
+    float: The maximum diameter of a pothole.
+    """
+    # Rest of the code...
+    
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -131,12 +213,32 @@ def calc_max_diameter(json_data):
     return 289
 
 def isL2present(json_data):
+    """
+    Checks if the given JSON data contains an item with the name 'L2'.
+    Parameters:
+    - json_data (list): A list of dictionaries representing JSON data.
+    Returns:
+    - bool: True if an item with the name 'L2' is present in the JSON data, False otherwise.
+    """
+    
     for item in json_data:
         if item['name'] == 'L2':
             return True
     return False
 
 def extract_data(json_dir, csv_file):
+    """
+    Extracts data from JSON files and creates a DataFrame with valid rows.
+    Parameters:
+    - json_dir (str): The directory path where the JSON files are located.
+    - csv_file (str): The file path of the CSV file.
+    Returns:
+    - valid_df (pandas.DataFrame): A DataFrame containing the valid rows with extracted data.
+    Raises:
+    - json.JSONDecodeError: If there is an invalid JSON file.
+    - Exception: If there is an error processing a JSON file.
+    """
+    
     json_dir = os.path.abspath(json_dir)
     csv_file = os.path.abspath(csv_file)
 
@@ -215,6 +317,22 @@ def extract_data(json_dir, csv_file):
     return valid_df
 
 def train_linear_model(X, y):
+    """
+    Trains a linear regression model using the given features (X) and target variable (y).
+    Parameters:
+    - X (array-like): The features used for training the model.
+    - y (array-like): The target variable used for training the model.
+    Returns:
+    - model: The trained linear regression model.
+    This function splits the data into training and test sets, fits a linear regression model on the training data,
+    and evaluates the model's performance on the test data. It also performs some additional steps such as making predictions,
+    adjusting predictions if they are less than 0.25, calculating the R-squared score, and logging the results.
+    Note: This function assumes that the necessary libraries (e.g., train_test_split, LinearRegression, logging, np, pd)
+    have been imported before calling this function.
+    """
+    # Function code here
+    pass
+    
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
 
@@ -254,6 +372,15 @@ def train_linear_model(X, y):
     return model
 
 def improved_model(X, y):
+    """
+    Trains an improved regression model using feature engineering, ensemble learning, and hyperparameter tuning.
+    Parameters:
+    X (array-like): The input features.
+    y (array-like): The target variable.
+    Returns:
+    object: The best trained regression model.
+    """
+    
     # Feature engineering
     X['Area_to_Perimeter'] = X['Area'] / X['Perimeter']
     X['Compactness'] = 4 * np.pi * X['Area'] / (X['Perimeter'] ** 2)
@@ -306,6 +433,21 @@ def improved_model(X, y):
     return best_model
 
 def gradient_boosting_model(X, y):
+    """
+    Trains a gradient boosting model on the given data and returns the trained model.
+    Parameters:
+    X (array-like): The input features.
+    y (array-like): The target variable.
+    Returns:
+    object: The trained gradient boosting model.
+    Raises:
+    None
+    Example:
+    X = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    y = [10, 11, 12]
+    model = gradient_boosting_model(X, y)
+    """
+    
     # Define the model
     gbm = GradientBoostingRegressor(n_estimators=200, learning_rate=0.1, max_depth=3, random_state=42)
     
@@ -333,8 +475,17 @@ def gradient_boosting_model(X, y):
     
     return gbm
 
-
 def stepwise_selection(X, y, forward=True):
+    """
+    Performs stepwise selection to select the best features for linear regression.
+    Args:
+        X (array-like): The input features.
+        y (array-like): The target variable.
+        forward (bool, optional): Whether to perform forward selection. Defaults to True.
+    Returns:
+        tuple: A tuple containing the trained model and the selected features.
+    """
+    
     logging.info("Performing stepwise selection...")
     model = LinearRegression()
     X_train, X_test, y_train, y_test = train_test_split(
@@ -357,8 +508,18 @@ def stepwise_selection(X, y, forward=True):
     logging.info("R-squared score with selected features:", r2_score)
     return model, selected_features
 
-
 def perform_cross_validation(X, y, n_splits=10):
+    """
+    Perform cross-validation using KFold and RandomForestRegressor.
+    Parameters:
+    - X (pandas.DataFrame): The input features.
+    - y (pandas.Series): The target variable.
+    - n_splits (int): The number of folds for cross-validation. Default is 10.
+    Returns:
+    - mean_r2 (float): The mean R-squared score across all folds.
+    - std_r2 (float): The standard deviation of the R-squared scores across all folds.
+    """
+    
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     model = RandomForestRegressor(random_state=42)
 
@@ -369,7 +530,6 @@ def perform_cross_validation(X, y, n_splits=10):
         y_train, y_val = y.iloc[train_index], y.iloc[val_index]
 
         model.fit(X_train, y_train)
-
         y_pred = model.predict(X_val)
         score = r2_score(y_val, y_pred)
         cv_scores.append(score)
@@ -383,7 +543,6 @@ def perform_cross_validation(X, y, n_splits=10):
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
 
     return mean_r2, std_r2
-
 
 def main():
     json_dir = 'data/cv_train_out'
@@ -437,7 +596,6 @@ def main():
 
     except Exception as e:
         logging.error(f"An error occurred in test execution: {str(e)}")
-
 
 if __name__ == "__main__":
     main()
