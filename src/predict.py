@@ -265,6 +265,102 @@ def isL2present(json_data):
     return False
 
 def extract_data(json_dir, csv_file):
+    json_dir = os.path.abspath(json_dir)
+    csv_file = os.path.abspath(csv_file)
+
+    logging.info(f"Using JSON directory: {json_dir}")
+    logging.info(f"Using CSV file: {csv_file}")
+
+    df = pd.read_csv(csv_file)
+    valid_rows = []  # Store rows that have valid JSON files
+    areas = []
+    aspect_ratios = []
+    l2_lengths = []
+    perimeters = []
+    max_diameters = []
+    l2_presents = []
+    pothole_confidences = []
+    l1_confidences = []
+    l2_confidences = []
+
+    for _, row in df.iterrows():
+        image_name = row['Pothole number']
+
+        image_file_path = os.path.join(
+            json_dir, f'p{int(image_name)}_results.json')
+        logging.debug(f"Processing image: {image_file_path}")
+
+        # Check if file exists
+        if not os.path.isfile(image_file_path):
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
+            continue  # Skip to the next iteration if the JSON file is not found
+
+        try:
+            with open(image_file_path, 'r') as file:
+                json_data = json.load(file)
+            area = calculate_pothole_area(json_data)
+            areas.append(area)
+
+            # Add aspect ratio predictor
+            aspect_ratio = calculate_aspect_ratio(json_data)
+            aspect_ratios.append(aspect_ratio)
+
+            # Add L2 length predictor
+            l2_length = calculate_length_L2(json_data)
+            l2_lengths.append(l2_length)
+
+            # Add perimeter predictor
+            perimeter = calculate_perimeter(json_data)
+            perimeters.append(perimeter)
+
+            # Max diameter
+            max_diameter = calc_max_diameter(json_data)
+            max_diameters.append(max_diameter)
+
+            # L2 present
+            l2_present = isL2present(json_data)
+            l2_presents.append(l2_present)
+            
+            # pothole confidence
+            pothole_conf = pothole_confidence(json_data)
+            pothole_confidences.append(pothole_conf)
+            
+            # L1 confidence
+            l1_conf = l1_confidence(json_data)
+            l1_confidences.append(l1_conf)
+            
+            # L2 confidence
+            l2_conf = l2_confidence(json_data)
+            l2_confidences.append(l2_conf)
+
+            # Keep the row only if it has a valid JSON file
+            valid_rows.append(row)
+
+            # Log the area
+            logging.debug(f"Area of pothole in image {image_name}: {area:.2f}")
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON in file: {image_file_path}")
+        except Exception as e:
+            logging.error(f"Error processing {image_file_path}: {str(e)}")
+
+    # Create a new DataFrame with only valid rows
+    valid_df = pd.DataFrame(valid_rows)
+    valid_df['Area'] = areas
+    valid_df['Aspect Ratio'] = aspect_ratios
+    valid_df['L2 Length'] = l2_lengths
+    valid_df['Perimeter'] = perimeters
+    valid_df['Max Diameter'] = max_diameters
+    valid_df['Area Squared'] = np.square(valid_df['Area'])
+    valid_df['L2 Present'] = l2_presents
+    valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
+    valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
+    valid_df['Log_Area'] = np.log1p(valid_df['Area'])
+    valid_df['Pothole Confidence'] = pothole_confidences
+    valid_df['L1 Confidence'] = l1_confidences
+    valid_df['L2 Confidence'] = l2_confidences
+    return valid_df
+
+# def extract_data(json_dir, csv_file):
     """
     Extracts data from JSON files and creates a DataFrame with valid rows.
     Parameters:
@@ -309,9 +405,9 @@ def extract_data(json_dir, csv_file):
                 'Perimeter': calculate_perimeter(json_data),
                 'Max Diameter': calc_max_diameter(json_data),
                 'L2 Present': isL2present(json_data),
-                'Pothole Confidence': pothole_confidence(json_data),
-                'L1 Confidence': l1_confidence(json_data),
-                'L2 Confidence': l2_confidence(json_data)
+                #'Pothole Confidence': pothole_confidence(json_data),
+                #'L1 Confidence': l1_confidence(json_data),
+                #'L2 Confidence': l2_confidence(json_data)
             }
             
             # Log the area
@@ -402,11 +498,6 @@ def improved_model(X, y):
     Returns:
     object: The best trained regression model.
     """
-    
-    # Feature engineering
-    X['Area_to_Perimeter'] = X['Area'] / X['Perimeter']
-    X['Compactness'] = 4 * np.pi * X['Area'] / (X['Perimeter'] ** 2)
-    X['Log_Area'] = np.log1p(X['Area'])
 
     # Create base models
     linear_reg = LinearRegression()
@@ -540,7 +631,6 @@ def main():
     try:
         # ----- DATA PREPROCESSING -----
         df_train = extract_data(json_dir, csv_file)
-        print(df_train)
         print("Data extracted successfully")
         df_train = df_train.dropna()
 
@@ -551,7 +641,9 @@ def main():
         df_train.to_csv('data/processed_data.csv', index=False)
 
         # ----- IMPROVED MODEL -----
-        model = improved_model(X, y)
+        #model = improved_model(X, y)
+        # GIVE 0.37!!!!!!!!!!
+        model = gradient_boosting_model(X, y)
 
         # ----- CROSS-VALIDATION -----
         mean_r2, std_r2 = perform_cross_validation(X, y)
