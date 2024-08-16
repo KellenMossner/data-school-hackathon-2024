@@ -1,4 +1,5 @@
 # Patch Perfect: Using AI to Fix Roads
+![Untitled design](https://github.com/user-attachments/assets/49062826-bdb8-45a3-9d5d-3c6502d254f4)
 Can we predict the amount of asphalt required to fill a pothole given just an image of that pothole?
 By using technologies such as computer vision and machine learning techniques we can estimate the number of bags of asphalt required to fill a pothole. 
 
