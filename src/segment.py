@@ -1,12 +1,9 @@
 from ultralytics import YOLO
+import glob as glob
+import numpy as np
+import json
 import cv2
 import os
-import json
-import numpy as np
-from datetime import datetime
-import matplotlib.pyplot as plt
-import glob as glob
-
 
 def save_detections_as_json(detections, output_json_path):
     """
@@ -16,6 +13,7 @@ def save_detections_as_json(detections, output_json_path):
         detections (list): List of detection dictionaries containing polygons and metadata.
         output_json_path (str): Path to the output JSON file.
     """
+    
     with open(output_json_path, 'w') as json_file:
         json.dump(detections, json_file, indent=2)
     print(f"Detections saved to {output_json_path}")
@@ -32,6 +30,7 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
         output_json_path (str): Path to the output JSON file.
         model (YOLO): The YOLO model object.
     """
+    
     img = cv2.imread(image_path)
     if img is None:
         print(f"Warning: Failed to load the image at {os.path.abspath(image_path)}")
@@ -105,10 +104,21 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
 
     # Save the detections to a JSON file
     save_detections_as_json(detections, output_json_path)
+    # Uncomment to save the image with contours
     # output_image_path = output_json_path.replace(".json", "_contours.png")
     # cv2.imwrite(output_image_path, img)
 
 def segment_yolo(model_path, train_image_dir, test_image_dir):
+    """
+    Segments images using the YOLO model.
+    Args:
+        model_path (str): The path to the YOLO model.
+        train_image_dir (str): The directory containing the training images.
+        test_image_dir (str): The directory containing the test images.
+    Returns:
+        None
+    """
+    
     # Load the model
     model = YOLO(model_path)
     train_output_dir = "data/cv_train_out"
@@ -122,7 +132,6 @@ def segment_yolo(model_path, train_image_dir, test_image_dir):
 
     for image_file in train_image_files:
         # Test results for the current image
-        test_results = model(image_file)
         test_results = model.predict(
             image_file, iou=0.7, conf=0.35, agnostic_nms=False)
         # Visualize and save detections for training
@@ -132,7 +141,6 @@ def segment_yolo(model_path, train_image_dir, test_image_dir):
             image_file, test_results, output_path, model)
     for image_file in test_image_files:
         # Test results for the current image
-        test_results = model(image_file)
         test_results = model.predict(
             image_file, iou=0.7, conf=0.35, agnostic_nms=False)
         # Visualize and save detections for training
