@@ -343,7 +343,7 @@ def extract_data(json_dir, csv_file):
         except Exception as e:
             logging.error(f"Error processing {image_file_path}: {str(e)}")
 
-    # Create a new DataFrame with only valid rows
+    # Create a new DataFrame with only valid rows and feature engineering
     valid_df = pd.DataFrame(valid_rows)
     valid_df['Area'] = areas
     valid_df['Aspect Ratio'] = aspect_ratios
@@ -356,6 +356,7 @@ def extract_data(json_dir, csv_file):
     valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
     valid_df['Log_Area'] = np.log1p(valid_df['Area'])
     valid_df['Pothole Confidence'] = pothole_confidences
+    valid_df['Area_Confidence'] = valid_df['Area'] * valid_df['Pothole Confidence']
     valid_df['L1 Confidence'] = l1_confidences
     valid_df['L2 Confidence'] = l2_confidences
     return valid_df
