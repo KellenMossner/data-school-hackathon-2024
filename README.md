@@ -10,6 +10,7 @@ Making use of Roboflow, we manually labeled all the training images into the 3 c
 Initially a linear model was used to gather insight into which predictors provided primary value to the prediction power. Area, being central to predictions, was scaled using the known L1 length (estimated that the size corner to corner was 503.5 since our segmentation produced a polygon). We then went about an extensive feature engineering process with noticeable improvements from: Aspect Ratio, Max Diameter, L2 Length, and adding Pothole/L1/L2 confidence scores from the YOLOv8 prediction pushed our R-squared up. After exploring a wide variety of models we settled on the GradientBoostingRegressor from scikit-learn. After including all interaction terms (93 features total), the 10-fold Cross-Validation R-squared was about 0.5, however this yielded worse results on the Kaggle test set probably due to overfitting. We tried many external changes to the pipeline such as removing duplicate pothole classifications.
 
 ## Execution
+NOTE: python 3.10 is required for the scripts to run.
 1. Run the Computer Vision model to segment images.
 ```bash
 python3 src/segment.py
