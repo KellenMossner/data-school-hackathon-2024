@@ -21,6 +21,7 @@ python3 src/predict.py
 ```
 
 ## Using the API
+![image](https://github.com/user-attachments/assets/42f2c22e-ba13-4a8d-8247-3de6ba50ed5e)
 1. Start the API script.
 ```bash
 python3 src/app.py
