@@ -361,80 +361,6 @@ def extract_data(json_dir, csv_file):
     valid_df['L2 Confidence'] = l2_confidences
     return valid_df
 
-# def extract_data(json_dir, csv_file):
-    """
-    Extracts data from JSON files and creates a DataFrame with valid rows.
-    Parameters:
-    - json_dir (str): The directory path where the JSON files are located.
-    - csv_file (str): The file path of the CSV file.
-    Returns:
-    - valid_df (pandas.DataFrame): A DataFrame containing the valid rows with extracted data.
-    Raises:
-    - json.JSONDecodeError: If there is an invalid JSON file.
-    - Exception: If there is an error processing a JSON file.
-    """
-    
-    json_dir = os.path.abspath(json_dir)
-    csv_file = os.path.abspath(csv_file)
-
-    logging.info(f"Using JSON directory: {json_dir}")
-    logging.info(f"Using CSV file: {csv_file}")
-
-    df = pd.read_csv(csv_file)
-    data = []  # List to store dictionaries of valid rows
-
-    for _, row in df.iterrows():
-        image_name = row['Pothole number']
-        image_file_path = os.path.join(json_dir, f'p{int(image_name)}_results.json')
-        logging.debug(f"Processing image: {image_file_path}")
-
-        # Check if file exists
-        if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
-            continue  # Skip to the next iteration if the JSON file is not found
-
-        try:
-            with open(image_file_path, 'r') as file:
-                json_data = json.load(file)
-            
-            # Create a dictionary for the current row
-            row_data = {
-                'Pothole number': image_name,
-                'Area': calculate_pothole_area(json_data),
-                'Aspect Ratio': calculate_aspect_ratio(json_data),
-                'L2 Length': calculate_length_L2(json_data),
-                'Perimeter': calculate_perimeter(json_data),
-                'Max Diameter': calc_max_diameter(json_data),
-                'L2 Present': isL2present(json_data),
-                #'Pothole Confidence': pothole_confidence(json_data),
-                #'L1 Confidence': l1_confidence(json_data),
-                #'L2 Confidence': l2_confidence(json_data)
-            }
-            
-            # Log the area
-            logging.debug(f"Area of pothole in image {image_name}: {row_data['Area']:.2f}")
-            
-            # Append the dictionary to the data list
-            data.append(row_data)
-        except json.JSONDecodeError:
-            logging.error(f"Invalid JSON in file: {image_file_path}")
-        except Exception as e:
-            logging.error(f"Error processing {image_file_path}: {str(e)}")
-
-    # Create a DataFrame from the list of dictionaries
-    json_df = pd.DataFrame(data)
-    
-    # Merge the original CSV DataFrame with the JSON DataFrame
-    valid_df = pd.merge(df, json_df, on='Pothole number', how='inner')
-    
-    # Feature engineering
-    valid_df['Area Squared'] = np.square(valid_df['Area'])
-    valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
-    valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
-    valid_df['Log_Area'] = np.log1p(valid_df['Area'])
-
-    return valid_df
-
 def train_linear_model(X, y):
     """
     Trains a linear regression model using the given features (X) and target variable (y).
@@ -546,6 +472,36 @@ def improved_model(X, y):
 
     return best_model
 
+def grid_search(X, y):
+    """
+    Perform grid search to estimate the best parameters for the gradient boosting model.
+    Parameters:
+    - X (array-like): The input features.
+    - y (array-like): The target variable.
+    Returns:
+    - best_params (dict): The best parameters found during grid search.
+    """
+    # Define the parameter grid
+    param_grid = {
+        'n_estimators': [100, 150, 200, 250, 300],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2, 0.3],
+        'max_depth': [3, 4, 5]
+    }
+    
+    # Create the gradient boosting model
+    gbm = GradientBoostingRegressor(random_state=42)
+    
+    # Perform grid search
+    grid_search = GridSearchCV(gbm, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X, y)
+    
+    # Get the best parameters
+    best_params = grid_search.best_params_
+    logging.info(f"Best model parameters: {best_params}")
+    print(f"Best model parameters: {best_params}")
+    
+    return best_params
+
 def gradient_boosting_model(X, y):
     """
     Trains a gradient boosting model on the given data and returns the trained model.
@@ -589,7 +545,7 @@ def gradient_boosting_model(X, y):
     
     return gbm
 
-def perform_cross_validation(X, y, n_splits=10):
+def cross_validation(X, y, n_splits=10):
     """
     Perform cross-validation using KFold and RandomForestRegressor.
     Parameters:
@@ -602,7 +558,7 @@ def perform_cross_validation(X, y, n_splits=10):
     """
     
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-    model = RandomForestRegressor(random_state=42)
+    model = GradientBoostingRegressor(n_estimators=300, learning_rate=0.2, max_depth=3, random_state=42)
 
     cv_scores = []
 
@@ -622,7 +578,8 @@ def perform_cross_validation(X, y, n_splits=10):
 
     logging.info(f"Cross-validation results:")
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
-
+    print(f"CV Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
+    
     return mean_r2, std_r2
 
 def main():
@@ -640,14 +597,17 @@ def main():
 
         # Save processed data to a CSV file
         df_train.to_csv('data/processed_data.csv', index=False)
-
+        
+        # Grid search for best model parameters
+        # Note: best parameters did not return best score on kaggle
+        # model_params = grid_search(X, y)
+        
         # ----- IMPROVED MODEL -----
-        #model = improved_model(X, y)
-        # GIVE 0.37!!!!!!!!!!
+        # model = improved_model(X, y)
         model = gradient_boosting_model(X, y)
 
         # ----- CROSS-VALIDATION -----
-        mean_r2, std_r2 = perform_cross_validation(X, y)
+        mean_r2, std_r2 = cross_validation(X, y)
 
     except Exception as e:
         logging.error(f"An error occurred in main execution: {str(e)}")
