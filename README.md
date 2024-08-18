@@ -5,10 +5,11 @@ By using technologies such as computer vision and machine learning techniques we
 
 ## Computer Vision
 
-We utilized the YOLOv8 large segmentation model to detect potholes. YOLOv8 is a state-of-the-art computer vision model known for its accuracy and efficiency in object detection tasks. To train the model, we leveraged the power of the Google Cloud Platform (GCP) and trained it on a large dataset of pothole images. Through iterations of training and fine-tuning over 200 epochs, we optimized the model's performance to achieve reliable pothole detection.
+## Computer Vision
+Making use of Roboflow, we manually labeled all the training images into the 3 classes, using polygons. We made use of a deep learning virtual machine on Google Cloud Platform (GCP) to train the YOLOv8 image segmentation model which we SSHed into. It took about 2.5 hours on a Nvidia Tesla T4 GPU with 200 epochs. We had trouble exporting the results to a JSON format for our prediction part since the mask which the model outputted was obviously separated by the stick, therefore the built in YOLOv8 JSON converted only gave us half the pothole. Using Convex Hulls we created our own output function to push the segmentation predictions for each image to a JSON format which included an outline of the entire pothole, even over the stick.
 
-## Model Training
-TODO
+## Prediction
+Initially a linear model was used to gather insight into which predictors provided primary value to the prediction power. Area, being central to predictions, was scaled using the known L1 length (estimated that the size corner to corner was 503.5 since our segmentation produced a polygon). We then went about an extensive feature engineering process with noticeable improvements from: Aspect Ratio, Max Diameter, L2 Length, and adding Pothole/L1/L2 confidence scores from the YOLOv8 prediction pushed our R-squared up. After exploring a wide variety of models we settled on the GradientBoostingRegressor from scikit-learn. After including all interaction terms (93 features total), the 10-fold Cross-Validation R-squared was about 0.5, however this yielded worse results on the Kaggle test set probably due to overfitting. We tried many external changes to the pipeline such as removing duplicate pothole classifications.
 
 ## Execution
 1. Run the Computer Vision model to segment images.
