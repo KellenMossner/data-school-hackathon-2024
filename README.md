@@ -20,6 +20,14 @@ python3 src/segment.py
 python3 src/predict.py
 ```
 
+## Using the API
+1. Start the API script.
+```bash
+python3 src/app.py
+```
+
+2.  Go to the link printed in the terminal and follow the instructions.
+
 ### Team: Chi-Squared and Confused:
 | Name           | SU Number |
 |----------------|-----------|
