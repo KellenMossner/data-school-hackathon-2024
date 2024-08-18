@@ -26,6 +26,7 @@ logging.basicConfig(filename='logs/model.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+# ------ FEATURE ENGINEERING -------
 def calculate_pothole_area(json_data):
     """
     Calculate the area of a pothole based on the provided JSON data.
@@ -107,7 +108,6 @@ def calculate_length_L1(json_data):
     Returns:
     - float or None: The length of the L1 segment if found, None otherwise.
     """
-    # Rest of the code...
     
     for item in json_data:
         if item['name'] == 'L1':
@@ -213,7 +213,6 @@ def calculate_perimeter(json_data):
     Returns:
     float: The perimeter of the pothole.
     """
-    # Rest of the code...
     
     for item in json_data:
         if item['name'] == 'pothole':
@@ -235,7 +234,6 @@ def calc_max_diameter(json_data):
     Returns:
     float: The maximum diameter of a pothole.
     """
-    # Rest of the code...
     
     for item in json_data:
         if item['name'] == 'pothole':
@@ -264,6 +262,7 @@ def isL2present(json_data):
             return True
     return False
 
+# ----- EXTRACTING THE DATA ------
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
     csv_file = os.path.abspath(csv_file)
@@ -361,6 +360,7 @@ def extract_data(json_dir, csv_file):
     valid_df['L2 Confidence'] = l2_confidences
     return valid_df
 
+# ----- DIFFERENT MODEL FITTING -----
 def train_linear_model(X, y):
     """
     Trains a linear regression model using the given features (X) and target variable (y).
@@ -545,6 +545,7 @@ def gradient_boosting_model(X, y):
     
     return gbm
 
+# ----- MODEL EVALUATION ------
 def cross_validation(X, y, n_splits=10):
     """
     Perform cross-validation using KFold and RandomForestRegressor.
@@ -582,6 +583,7 @@ def cross_validation(X, y, n_splits=10):
     
     return mean_r2, std_r2
 
+# ------- MAIN FUNCTION TO PREDICT ---------
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
@@ -613,7 +615,7 @@ def main():
         logging.error(f"An error occurred in main execution: {str(e)}")
 
     try:
-        # ------------------- Test Model -------------------------------------------
+        # ------------------- Test Model Predictions-------------------------------------------
         df_test = extract_data('data/cv_test_out', 'data/test_labels.csv')
 
         df_test['Area'] = df_test['Area'].fillna(0)
