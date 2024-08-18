@@ -3,6 +3,7 @@ charset-normalizer==3.3.2
 contourpy==1.2.1
 cycler==0.12.1
 filelock==3.15.4
+filetype==1.2.0
 fonttools==4.53.1
 fsspec==2024.6.1
 idna==3.7
@@ -28,6 +29,7 @@ nvidia-nccl-cu12==2.20.5
 nvidia-nvjitlink-cu12==12.6.20
 nvidia-nvtx-cu12==12.1.105
 opencv-python==4.10.0.84
+opencv-python-headless==4.10.0.84
 packaging==24.1
 pandas==2.2.2
 pillow==10.4.0
@@ -35,9 +37,12 @@ psutil==6.0.0
 py-cpuinfo==9.0.0
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
 pytz==2024.1
 PyYAML==6.0.2
 requests==2.32.3
+requests-toolbelt==1.0.0
+roboflow==1.1.40
 scikit-learn==1.5.1
 scipy==1.14.0
 seaborn==0.13.2
