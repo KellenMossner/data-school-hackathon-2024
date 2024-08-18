@@ -4,8 +4,6 @@ Can we predict the amount of asphalt required to fill a pothole given just an im
 By using technologies such as computer vision and machine learning techniques we can estimate the number of bags of asphalt required to fill a pothole. 
 
 ## Computer Vision
-
-## Computer Vision
 Making use of Roboflow, we manually labeled all the training images into the 3 classes, using polygons. We made use of a deep learning virtual machine on Google Cloud Platform (GCP) to train the YOLOv8 image segmentation model which we SSHed into. It took about 2.5 hours on a Nvidia Tesla T4 GPU with 200 epochs. We had trouble exporting the results to a JSON format for our prediction part since the mask which the model outputted was obviously separated by the stick, therefore the built in YOLOv8 JSON converted only gave us half the pothole. Using Convex Hulls we created our own output function to push the segmentation predictions for each image to a JSON format which included an outline of the entire pothole, even over the stick.
 
 ## Prediction
