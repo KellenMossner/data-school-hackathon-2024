@@ -7,3 +7,4 @@ pandas==2.2.2
 scikit_learn==1.5.1
 Shapely==2.0.5
 ultralytics==8.2.77
+flask==2.1.1
