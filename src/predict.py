@@ -35,7 +35,7 @@ def calculate_pothole_area(json_data):
     Returns:
     float or None: The calculated area of the pothole, multiplied by the square of the ratio if available. Returns None if no pothole is found.
     """
-    
+
     ratio = calculate_L1_ratio(json_data)
     for item in json_data:
         if item['name'] == 'pothole':
@@ -49,6 +49,7 @@ def calculate_pothole_area(json_data):
                 return poly.area*ratio**2
     return None
 
+
 def pothole_confidence(json_data):
     """
     Calculates the confidence level of a pothole in the given JSON data.
@@ -57,10 +58,11 @@ def pothole_confidence(json_data):
     Returns:
     float: The confidence level of the pothole.
     """
-    
+
     for item in json_data:
         if item['name'] == 'pothole':
             return item['confidence']
+
 
 def l1_confidence(json_data):
     """
@@ -70,10 +72,11 @@ def l1_confidence(json_data):
     Returns:
     float: The confidence level of the L1 segment.
     """
-    
+
     for item in json_data:
         if item['name'] == 'L1':
             return item['confidence']
+
 
 def l2_confidence(json_data):
     """
@@ -83,10 +86,11 @@ def l2_confidence(json_data):
     Returns:
     float: The confidence level of the L2 segment.
     """
-    
+
     for item in json_data:
         if item['name'] == 'L2':
             return item['confidence']
+
 
 def distance(point1, point2):
     """
@@ -97,8 +101,9 @@ def distance(point1, point2):
     Returns:
     float: The Euclidean distance between the two points.
     """
-    
+
     return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
+
 
 def calculate_length_L1(json_data):
     """
@@ -108,7 +113,7 @@ def calculate_length_L1(json_data):
     Returns:
     - float or None: The length of the L1 segment if found, None otherwise.
     """
-    
+
     for item in json_data:
         if item['name'] == 'L1':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -123,6 +128,7 @@ def calculate_length_L1(json_data):
 
     return None
 
+
 def calculate_L1_ratio(json_data):
     """
     Calculate the L1 ratio based on the given JSON data.
@@ -131,13 +137,14 @@ def calculate_L1_ratio(json_data):
     Returns:
     float or None: The calculated L1 ratio if the length of L1 is not None, otherwise None.
     """
-    
+
     DIAGONAL_L1 = 503.5
     l1_length = calculate_length_L1(json_data)
     if l1_length is not None:
         return DIAGONAL_L1/l1_length
     else:
         return None
+
 
 def calculate_length_L2(json_data):
     """
@@ -166,7 +173,7 @@ def calculate_length_L2(json_data):
     >>> calculate_length_L2(json_data)
     5.196152422706632
     """
-    
+
     for item in json_data:
         if item['name'] == 'L2':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -181,6 +188,7 @@ def calculate_length_L2(json_data):
 
     return 121
 
+
 def calculate_aspect_ratio(json_data):
     """
     Calculate the aspect ratio of the pothole from the given JSON data.
@@ -192,7 +200,7 @@ def calculate_aspect_ratio(json_data):
     - The aspect ratio is calculated by dividing the width of the pothole by its height.
     - If no pothole is found in the JSON data, a default aspect ratio of 0.9 is returned.
     """
-    
+
     # Calculate aspect ratio of the pothole from boxes
     for item in json_data:
         if item['name'] == 'pothole':
@@ -205,6 +213,7 @@ def calculate_aspect_ratio(json_data):
             return width / height
     return 0.9
 
+
 def calculate_perimeter(json_data):
     """
     Calculate the perimeter of a pothole based on the given JSON data.
@@ -213,7 +222,7 @@ def calculate_perimeter(json_data):
     Returns:
     float: The perimeter of the pothole.
     """
-    
+
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -226,6 +235,7 @@ def calculate_perimeter(json_data):
             return perimeter
     return 763.7
 
+
 def calc_max_diameter(json_data):
     """
     Calculates the maximum diameter of a pothole from the given JSON data.
@@ -234,7 +244,7 @@ def calc_max_diameter(json_data):
     Returns:
     float: The maximum diameter of a pothole.
     """
-    
+
     for item in json_data:
         if item['name'] == 'pothole':
             points = list(zip(item['segments']['x'], item['segments']['y']))
@@ -248,6 +258,7 @@ def calc_max_diameter(json_data):
             return max_distance
     return 289
 
+
 def isL2present(json_data):
     """
     Checks if the given JSON data contains an item with the name 'L2'.
@@ -256,13 +267,15 @@ def isL2present(json_data):
     Returns:
     - bool: True if an item with the name 'L2' is present in the JSON data, False otherwise.
     """
-    
+
     for item in json_data:
         if item['name'] == 'L2':
             return True
     return False
 
 # ----- EXTRACTING THE DATA ------
+
+
 def extract_data(json_dir, csv_file):
     json_dir = os.path.abspath(json_dir)
     csv_file = os.path.abspath(csv_file)
@@ -291,7 +304,8 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {
+                          image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
@@ -319,15 +333,15 @@ def extract_data(json_dir, csv_file):
             # L2 present
             l2_present = isL2present(json_data)
             l2_presents.append(l2_present)
-            
+
             # pothole confidence
             pothole_conf = pothole_confidence(json_data)
             pothole_confidences.append(pothole_conf)
-            
+
             # L1 confidence
             l1_conf = l1_confidence(json_data)
             l1_confidences.append(l1_conf)
-            
+
             # L2 confidence
             l2_conf = l2_confidence(json_data)
             l2_confidences.append(l2_conf)
@@ -352,15 +366,19 @@ def extract_data(json_dir, csv_file):
     valid_df['Area Squared'] = np.square(valid_df['Area'])
     valid_df['L2 Present'] = l2_presents
     valid_df['Area_to_Perimeter'] = valid_df['Area'] / valid_df['Perimeter']
-    valid_df['Compactness'] = 4 * np.pi * valid_df['Area'] / (valid_df['Perimeter'] ** 2)
+    valid_df['Compactness'] = 4 * np.pi * \
+        valid_df['Area'] / (valid_df['Perimeter'] ** 2)
     valid_df['Log_Area'] = np.log1p(valid_df['Area'])
     valid_df['Pothole Confidence'] = pothole_confidences
-    valid_df['Area_Confidence'] = valid_df['Area'] * valid_df['Pothole Confidence']
+    valid_df['Area_Confidence'] = valid_df['Area'] * \
+        valid_df['Pothole Confidence']
     valid_df['L1 Confidence'] = l1_confidences
     valid_df['L2 Confidence'] = l2_confidences
     return valid_df
 
 # ----- DIFFERENT MODEL FITTING -----
+
+
 def train_linear_model(X, y):
     """
     Trains a linear regression model using the given features (X) and target variable (y).
@@ -375,9 +393,7 @@ def train_linear_model(X, y):
     Note: This function assumes that the necessary libraries (e.g., train_test_split, LinearRegression, logging, np, pd)
     have been imported before calling this function.
     """
-    # Function code here
-    pass
-    
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
 
@@ -392,9 +408,7 @@ def train_linear_model(X, y):
     # Make predictions on test set
     y_pred = model.predict(X_test)
 
-    # # Log some sample predictions
-    # for true, pred in zip(y_test[:5], y_pred[:5]):
-    #     logging.info(f"True: {true}, Predicted: {pred:.2f}")
+    # Log some sample predictions
 
     # if the prediction is less than 0.25, set to 0.25
     y_pred = np.where(y_pred < 0.25, 0.25, y_pred)
@@ -415,6 +429,7 @@ def train_linear_model(X, y):
     logging.info(lm_model_summary)
     logging.info("Model training completed successfully.")
     return model
+
 
 def improved_model(X, y):
     """
@@ -460,7 +475,8 @@ def improved_model(X, y):
     }
 
     # Perform grid search
-    grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search = GridSearchCV(
+        pipeline, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
     grid_search.fit(X, y)
 
     # Get best model
@@ -471,6 +487,7 @@ def improved_model(X, y):
     print("Best RMSE:", np.sqrt(-grid_search.best_score_))
 
     return best_model
+
 
 def grid_search(X, y):
     """
@@ -487,20 +504,22 @@ def grid_search(X, y):
         'learning_rate': [0.01, 0.05, 0.1, 0.2, 0.3],
         'max_depth': [3, 4, 5]
     }
-    
+
     # Create the gradient boosting model
     gbm = GradientBoostingRegressor(random_state=42)
-    
+
     # Perform grid search
-    grid_search = GridSearchCV(gbm, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search = GridSearchCV(
+        gbm, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
     grid_search.fit(X, y)
-    
+
     # Get the best parameters
     best_params = grid_search.best_params_
     logging.info(f"Best model parameters: {best_params}")
     print(f"Best model parameters: {best_params}")
-    
+
     return best_params
+
 
 def gradient_boosting_model(X, y):
     """
@@ -517,35 +536,39 @@ def gradient_boosting_model(X, y):
     y = [10, 11, 12]
     model = gradient_boosting_model(X, y)
     """
-    
+
     # Define the model: Best results with n_estimators=300, learning_rate=0.1, max_depth=3
-    gbm = GradientBoostingRegressor(n_estimators=300, learning_rate=0.2, max_depth=3, random_state=42)
-    
+    gbm = GradientBoostingRegressor(
+        n_estimators=300, learning_rate=0.2, max_depth=3, random_state=42)
+
     # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
+
     # Train the model
     gbm.fit(X_train, y_train)
-    
+
     # Predict on test data
     y_pred = gbm.predict(X_test)
-    
+
     # Ensure predictions are not less than 0.25
     y_pred = np.maximum(y_pred, 0.25)
-    
+
     # Calculate and log R-squared
     r2 = r2_score(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
-    
+
     logging.info(f"Gradient Boosting - R-squared: {r2:.4f}")
     logging.info(f"Gradient Boosting - Mean Squared Error: {mse:.4f}")
-    
+
     print(f"R-squared on test data: {r2:.4f}")
     print(f"Mean Squared Error on test data: {mse:.4f}")
-    
+
     return gbm
 
 # ----- MODEL EVALUATION ------
+
+
 def cross_validation(X, y, n_splits=10):
     """
     Perform cross-validation using KFold and RandomForestRegressor.
@@ -557,9 +580,10 @@ def cross_validation(X, y, n_splits=10):
     - mean_r2 (float): The mean R-squared score across all folds.
     - std_r2 (float): The standard deviation of the R-squared scores across all folds.
     """
-    
+
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-    model = GradientBoostingRegressor(n_estimators=300, learning_rate=0.2, max_depth=3, random_state=42)
+    model = GradientBoostingRegressor(
+        n_estimators=300, learning_rate=0.2, max_depth=3, random_state=42)
 
     cv_scores = []
 
@@ -580,10 +604,12 @@ def cross_validation(X, y, n_splits=10):
     logging.info(f"Cross-validation results:")
     logging.info(f"Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
     print(f"CV Mean R-squared: {mean_r2:.4f} (+/- {std_r2:.4f})")
-    
+
     return mean_r2, std_r2
 
 # ------- MAIN FUNCTION TO PREDICT ---------
+
+
 def main():
     json_dir = 'data/cv_train_out'
     csv_file = 'data/train_labels.csv'
@@ -599,11 +625,11 @@ def main():
 
         # Save processed data to a CSV file
         df_train.to_csv('data/processed_data.csv', index=False)
-        
+
         # Grid search for best model parameters
         # Note: best parameters did not return best score on kaggle
         # model_params = grid_search(X, y)
-        
+
         # ----- IMPROVED MODEL -----
         # model = improved_model(X, y)
         model = gradient_boosting_model(X, y)
@@ -639,6 +665,7 @@ def main():
 
     except Exception as e:
         logging.error(f"An error occurred in test execution: {str(e)}")
+
 
 if __name__ == "__main__":
     main()
