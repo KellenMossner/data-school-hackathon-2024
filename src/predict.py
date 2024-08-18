@@ -19,6 +19,8 @@ import logging
 import math
 import json
 import os
+import pickle
+import joblib
 
 # Configure logging
 open('logs/model.log', 'w').close()
@@ -527,8 +529,14 @@ def gradient_boosting_model(X, y):
     # Train the model
     gbm.fit(X_train, y_train)
     
+    # Save the model
+    with open('data/gbm.pkl', 'wb') as f:
+        pickle.dump(gbm, f)
+    # Load the model
+    gbm2 = joblib.load('data/gbm.pkl')
+
     # Predict on test data
-    y_pred = gbm.predict(X_test)
+    y_pred = gbm2.predict(X_test)
     
     # Ensure predictions are not less than 0.25
     y_pred = np.maximum(y_pred, 0.25)
