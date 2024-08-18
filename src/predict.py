@@ -1,4 +1,3 @@
-from mlxtend.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
@@ -306,8 +305,7 @@ def extract_data(json_dir, csv_file):
 
         # Check if file exists
         if not os.path.isfile(image_file_path):
-            logging.debug(f"JSON file not found for image: {
-                          image_name}. Skipping this image.")
+            logging.debug(f"JSON file not found for image: {image_name}. Skipping this image.")
             continue  # Skip to the next iteration if the JSON file is not found
 
         try:
