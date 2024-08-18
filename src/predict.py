@@ -551,13 +551,15 @@ def gradient_boosting_model(X, y):
     gbm.fit(X_train, y_train)
     
     # Save the model
-    with open('data/gbm.pkl', 'wb') as f:
-        pickle.dump(gbm, f)
+    # Note: to reproduce results from kaggle load the pretrained model gbm.pkl from data
+    # Uncomment this code if you wish to save your own model
+    # with open('data/gbm.pkl', 'wb') as f:
+    #    pickle.dump(gbm, f)
     # Load the model
     gbm2 = joblib.load('data/gbm.pkl')
 
     # Predict on test data
-    y_pred = gbm.predict(X_test)
+    y_pred = gbm2.predict(X_test)
     
     # Ensure predictions are not less than 0.25
     y_pred = np.maximum(y_pred, 0.25)
@@ -572,7 +574,7 @@ def gradient_boosting_model(X, y):
     print(f"R-squared on test data: {r2:.4f}")
     print(f"Mean Squared Error on test data: {mse:.4f}")
 
-    return gbm
+    return gbm2
 
 # ----- MODEL EVALUATION ------
 
