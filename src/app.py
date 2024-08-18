@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_file
+import segment
 from ultralytics import YOLO
 import cv2
 import numpy as np
@@ -7,11 +8,28 @@ import io
 from PIL import Image
 from shapely.geometry import Polygon
 import math
+import base64
+import pandas as pd
+from predict import (
+    calculate_pothole_area,
+    calculate_aspect_ratio,
+    calculate_length_L2,
+    calculate_perimeter,
+    calc_max_diameter,
+    isL2present,
+    pothole_confidence,
+    l1_confidence,
+    l2_confidence
+)
 
 app = Flask(__name__)
 
 # Load your YOLO model
 yolo_model = YOLO("data/final_best.pt")
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Load your gbm model
 with open("data/gbm.pkl", "rb") as f:
@@ -21,54 +39,25 @@ def distance(point1, point2):
     return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
 
 def extract_features(json_data):
-    features = {}
-    
-    # Calculate area
-    for item in json_data:
-        if item['name'] == 'pothole':
-            points = list(zip(item['segments']['x'], item['segments']['y']))
-            poly = Polygon(points)
-            features['Area'] = poly.area
-            
-            # Calculate aspect ratio
-            x1, y1, x2, y2 = item['box']['x1'], item['box']['y1'], item['box']['x2'], item['box']['y2']
-            width, height = x2 - x1, y2 - y1
-            features['Aspect Ratio'] = width / height
-            
-            # Calculate perimeter
-            perimeter = sum(distance(points[i], points[i+1]) for i in range(len(points)-1))
-            perimeter += distance(points[-1], points[0])
-            features['Perimeter'] = perimeter
-            
-            # Calculate max diameter
-            max_diameter = max(distance(points[i], points[j]) for i in range(len(points)) for j in range(i+1, len(points)))
-            features['Max Diameter'] = max_diameter
-            
-            features['Area Squared'] = features['Area'] ** 2
-            features['Area_to_Perimeter'] = features['Area'] / features['Perimeter']
-            features['Compactness'] = 4 * np.pi * features['Area'] / (features['Perimeter'] ** 2)
-            features['Log_Area'] = np.log1p(features['Area'])
-            features['Pothole Confidence'] = item['confidence']
-            features['Area_Confidence'] = features['Area'] * features['Pothole Confidence']
-            
-            break
-    
-    # Add L1 and L2 related features
-    for item in json_data:
-        if item['name'] == 'L1':
-            features['L1 Confidence'] = item['confidence']
-        elif item['name'] == 'L2':
-            features['L2 Present'] = 1
-            features['L2 Confidence'] = item['confidence']
-            points = list(zip(item['segments']['x'], item['segments']['y']))
-            features['L2 Length'] = max(distance(points[i], points[j]) for i in range(len(points)) for j in range(i+1, len(points)))
-    
-    if 'L2 Present' not in features:
-        features['L2 Present'] = 0
-        features['L2 Confidence'] = 0
-        features['L2 Length'] = 0
-    
-    return features
+    features = {
+        'Pothole number': 0,
+        'Area': calculate_pothole_area(json_data),
+        'Aspect Ratio': calculate_aspect_ratio(json_data),
+        'L2 Length': calculate_length_L2(json_data),
+        'Perimeter': calculate_perimeter(json_data),
+        'Max Diameter': calc_max_diameter(json_data),
+        'Area Squared': np.square(calculate_pothole_area(json_data)),
+        'L2 Present': isL2present(json_data),
+        'Area_to_Perimeter': calculate_pothole_area(json_data) / calculate_perimeter(json_data),
+        'Compactness': 4 * np.pi * calculate_pothole_area(json_data) / (calculate_perimeter(json_data) ** 2),
+        'Log_Area': np.log1p(calculate_pothole_area(json_data)),
+        'Pothole Confidence': pothole_confidence(json_data),
+        'Area_Confidence': calculate_pothole_area(json_data) * pothole_confidence(json_data),
+        'L1 Confidence': l1_confidence(json_data),
+        'L2 Confidence': l2_confidence(json_data)
+    }
+    df = pd.DataFrame(features, index=[0])
+    return df
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -83,23 +72,23 @@ def predict():
 
     # Process the image with YOLO
     results = yolo_model.predict(opencv_image, iou=0.7, conf=0.35, agnostic_nms=False)
-
+    detections, img = segment.extract_json(opencv_image, results, yolo_model.model, save_image=True)
     # Extract features from YOLO results
-    json_data = results[0].tojson()
-    features = extract_features(json_data)
-
-    # Prepare features for prediction
-    feature_vector = [features[col] for col in ['Area', 'Aspect Ratio', 'L2 Length', 'Perimeter', 'Max Diameter', 
-                                                'Area Squared', 'L2 Present', 'Area_to_Perimeter', 'Compactness', 
-                                                'Log_Area', 'Pothole Confidence', 'Area_Confidence', 'L1 Confidence', 
-                                                'L2 Confidence']]
-
+    features = extract_features(detections)
+    features['Pothole number'] = int(image_file.filename[1:-4])
+    print(features)
     # Make prediction
-    cement_bags = max(gbm_model.predict([feature_vector])[0], 0.25)
+    cement_bags = max(gbm_model.predict(features)[0], 0.25)
+    print(cement_bags)
+
+    # Convert the processed image to a byte stream and encode it in base64
+    _, buffer = cv2.imencode('.png', img)
+    img_base64 = base64.b64encode(buffer).decode('utf-8')
 
     return jsonify({
-        "cement_bags": cement_bags,
-        "features": features
+        "prediction": cement_bags,
+        "image": img_base64,
+        "message": "Image uploaded and processed successfully!"
     })
 
 if __name__ == '__main__':

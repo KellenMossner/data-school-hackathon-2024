@@ -17,25 +17,8 @@ def save_detections_as_json(detections, output_json_path):
     with open(output_json_path, 'w') as json_file:
         json.dump(detections, json_file, indent=2)
     print(f"Detections saved to {output_json_path}")
-
-
-def visualize_and_save_detections(image_path, results, output_json_path, model):
-    """
-    Visualize the segmentation masks on the image and save the masks as a single polygon in a JSON file.
-    Merges multiple contours into a single polygon for each pothole.
-
-    Parameters:
-        image_path (str): Path to the image file.
-        results (YOLO result object): The result object returned by the YOLO model inference.
-        output_json_path (str): Path to the output JSON file.
-        model (YOLO): The YOLO model object.
-    """
     
-    img = cv2.imread(image_path)
-    if img is None:
-        print(f"Warning: Failed to load the image at {os.path.abspath(image_path)}")
-        return
-
+def extract_json(img, results, model, save_image=False):
     detections = []
     names = model.names
 
@@ -103,10 +86,34 @@ def visualize_and_save_detections(image_path, results, output_json_path, model):
                               color=(0, 255, 0), thickness=2)
 
     # Save the detections to a JSON file
-    save_detections_as_json(detections, output_json_path)
+    if save_image:
+        return detections, img
+    else:
+        return detections
+
+def visualize_and_save_detections(image_path, results, output_json_path, model):
+    """
+    Visualize the segmentation masks on the image and save the masks as a single polygon in a JSON file.
+    Merges multiple contours into a single polygon for each pothole.
+
+    Parameters:
+        image_path (str): Path to the image file.
+        results (YOLO result object): The result object returned by the YOLO model inference.
+        output_json_path (str): Path to the output JSON file.
+        model (YOLO): The YOLO model object.
+    """
+    
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"Warning: Failed to load the image at {os.path.abspath(image_path)}")
+        return
+    
+    detections = extract_json(img, results, model)
     # Uncomment to save the image with contours
+    # detections, img = extract_json(img, results, model)
     # output_image_path = output_json_path.replace(".json", "_contours.png")
     # cv2.imwrite(output_image_path, img)
+    save_detections_as_json(detections, output_json_path)
 
 def segment_yolo(model_path, train_image_dir, test_image_dir):
     """

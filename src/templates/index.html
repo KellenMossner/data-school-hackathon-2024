@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <style>
+        #predict-button {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload an Image for Pothole Detection</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="image-input" name="image" accept="image/*" required>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="confirmation" style="display: none;">
+        <p id="confirmation-message"></p>
+        <button id="predict-button">Predict</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.error) {
+                alert(result.error);
+            } else {
+                document.getElementById('confirmation-message').innerText = result.message;
+                document.getElementById('confirmation').style.display = 'block';
+                document.getElementById('predict-button').style.display = 'inline';
+            }
+        });
+
+        document.getElementById('predict-button').addEventListener('click', async function() {
+            const formData = new FormData(document.getElementById('upload-form'));
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            document.getElementById('result').innerHTML = `
+                <p>Prediction: ${result.prediction} bags of cement</p>
+                <img src="data:image/png;base64,${result.image}" alt="Processed Image">
+            `;
+        });
+    </script>
+</body>
+</html>
