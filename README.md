@@ -28,7 +28,7 @@ python3 src/predict.py
 python3 src/app.py
 ```
 
-2.  Go to the link printed in the terminal and follow the instructions.
+2.  Go to the link printed in the terminal and follow the instructions. If no link is printed go to http://localhost:5000/.
 
 ### Team: Chi-Squared and Confused:
 | Name           | SU Number |
